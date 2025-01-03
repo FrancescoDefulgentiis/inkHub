@@ -1,0 +1,9 @@
+{
+    "transport":{
+        "palina":"f13837"
+    },
+    "meteo":{
+        "location":"Monterotondo",
+        "unit":"C"
+    }
+}
