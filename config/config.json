@@ -1,9 +1,13 @@
 {
-    "transport":{
-        "palina":"f13837"
+    "transport": {
+        "palina": "f13837"
     },
-    "meteo":{
-        "location":"3172768",
-        "unit":"metric"
+    "meteo": {
+        "location": "3172768",
+        "unit": "metric"
+    },
+    "display": {
+        "width": 128,
+        "height": 64
     }
 }

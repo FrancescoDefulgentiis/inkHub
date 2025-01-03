@@ -10,6 +10,7 @@ class Cotral_controller:
         self.stop_url = "PIV.do?cmd=1&userId=1&pCodice="
         self.cotral_url = "http://travel.mob.cotralspa.it:7777/beApp/"
         self.cotral_stop = stop_index
+
         
         # Create a thread to fetch data
         self.thread = threading.Thread(target=self.Get_data)
