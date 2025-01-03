@@ -3,26 +3,11 @@ from enums.stateEnum import StateEnum as stateEnum
 from services.cotral import Cotral_controller as cotralController
 from services.meteo import Meteo_controller as meteoController
 import json
+from time import sleep
 
 class Hub:
 
     current_state = stateEnum.IDLE
-
-    # Commands for buttons
-    def command1():
-        print("Command 1 executed")
-
-    def command2():
-        print("Command 2 executed")
-
-    def command3():
-        print("Command 3 executed")
-
-    def command4():
-        print("Command 4 executed")
-
-    def command5():
-        print("Command 5 executed")
 
     def __init__(self):
 
@@ -50,6 +35,29 @@ class Hub:
 
         self.cotralController = cotralController(palina)
         self.meteoController = meteoController(location, unit)
+
+    # Commands for buttons
+    def command1():
+        if hub.current_state == stateEnum.METEO:
+            print("service already started")
+        else:
+            current_state = stateEnum.METEO
+            
+            meteoController.start_thread()
+            print("Meteo service started")
+
+    def command2():
+        pass
+
+    def command3():
+        pass
+
+    def command4():
+        pass
+
+    def command5():
+        pass
+
 
 # Function to handle window close event
 def on_closing():

@@ -1,4 +1,5 @@
 import requests
+import threading
 
 class Meteo_controller:
     def __init__(self, location, unit):
@@ -10,7 +11,7 @@ class Meteo_controller:
     def get_weather_data(self):
         params = {
             'q': self.location,
-            'units': 'metric' if self.unit == 'C' else 'imperial',
+            'units': 'Celsius' if self.unit == 'C' else 'Farhenheit',
             'appid': self.api_key
         }
         response = requests.get(self.base_url, params=params)
@@ -18,3 +19,7 @@ class Meteo_controller:
             return response.json()
         else:
             return None
+        
+    def start_thread(self):
+        thread = threading.Thread(target=self.get_weather_data)
+        thread.start()

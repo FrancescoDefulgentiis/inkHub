@@ -2,7 +2,7 @@ import requests
 import threading
 import pandas as pd
 import xml.etree.ElementTree as ET
-import time
+from time import sleep
 
 class Cotral_controller:
     def __init__(self, stop_index):
@@ -43,4 +43,4 @@ class Cotral_controller:
             self.dataframe = pd.DataFrame(data)
             
             # Sleep for 10 seconds before the next request
-            time.sleep(10)
+            sleep(10)
