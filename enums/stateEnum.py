@@ -1,6 +1,7 @@
 from enum import Enum
+from services.meteo import Meteo_controller as meteoController
 
 class StateEnum(Enum):
-    IDLE = "idle"
+    STARTUP = "startup"
     TRANSPORT = "transport"
     METEO = "meteo"
