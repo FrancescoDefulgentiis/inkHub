@@ -7,44 +7,34 @@ from time import sleep
 class Cotral_controller:
     def __init__(self, stop_index):
         # Initialize URLs and stop index
-        self.stop_url = "PIV.do?cmd=1&userId=1&pCodice="
-        self.cotral_url = "http://travel.mob.cotralspa.it:7777/beApp/"
         self.cotral_stop = stop_index
+        self.response = None
+        self.thread = None
         self.stop_thread = False
-        
-        # Create a thread to fetch data
-        self.thread = threading.Thread(target=self.Get_data)
-        
-        # Initialize an empty DataFrame to store data
-        self.dataframe = pd.DataFrame()
-        
-        # Start the thread
-        self.thread.start()
-        
-        # Flag to stop the thread
+        self.cotral_url = "http://travel.mob.cotralspa.it:7777/beApp/PIV.do"
 
 
     def setStopFlag(self, status):
         self.stop_thread = status
 
-    def Get_data(self):
+
+    def start_thread(self):
+        self.stop_thread = False
+        self.thread = threading.Thread(target=self.thread_function)
+        self.thread.start()
+    def thread_function(self):
+        params={
+            'cmd': 1,
+            'userId': 1,
+            'pCodice': self.cotral_stop
+        }
         print("thread started")
-        
-        # Loop to fetch data until stop_thread is set to True
         while not self.stop_thread:
-            # Send a GET request to the Cotral API
-            response = requests.get(f"{self.cotral_url}{self.stop_url}{self.cotral_stop}")
-            
-            # Parse the XML response
-            xml_data = response.text
+            self.response=requests.get(self.cotral_url,params=params)
+            xml_data = self.response.text
             data = []
             for child in ET.fromstring(xml_data):
-                # Extract data from each XML element
                 child_data = {child.tag: child.text for child in child}
                 data.append(child_data)
-            
-            # Update the DataFrame with the new data
-            self.dataframe = pd.DataFrame(data)
-            
-            # Sleep for 10 seconds before the next request
+            self.response = pd.DataFrame(data)
             sleep(10)
