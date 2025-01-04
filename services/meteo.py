@@ -12,7 +12,6 @@ class Meteo_controller:
         self.response = None
         self.thread = None
         self.appid = os.getenv('OPENWEATHER_API_KEY')
-        print("app id=",self.appid)
         self.base_url = 'http://api.openweathermap.org/data/2.5//forecast'
 
     def setStopFlag(self, status):
