@@ -10,7 +10,7 @@ class Cotral_controller:
         self.stop_url = "PIV.do?cmd=1&userId=1&pCodice="
         self.cotral_url = "http://travel.mob.cotralspa.it:7777/beApp/"
         self.cotral_stop = stop_index
-
+        self.stop_thread = False
         
         # Create a thread to fetch data
         self.thread = threading.Thread(target=self.Get_data)
@@ -22,7 +22,10 @@ class Cotral_controller:
         self.thread.start()
         
         # Flag to stop the thread
-        self.stop_thread = False
+
+
+    def setStopFlag(self, status):
+        self.stop_thread = status
 
     def Get_data(self):
         print("thread started")

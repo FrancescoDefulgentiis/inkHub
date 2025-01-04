@@ -9,9 +9,10 @@ from time import sleep
 
 class Hub:
 
-    current_state = None
-
     def __init__(self):
+        self.current_state = None
+        self.lock = threading.Lock()
+        self.response = None
 
         # Load config file
         try:
@@ -29,14 +30,14 @@ class Hub:
             palina = config['transport']['palina']
             location = config['meteo']['location']
             unit = config['meteo']['unit']
-            display= config['display']['width'], config['display']['height']
+            display = config['display']['width'], config['display']['height']
         else:
             print("Config file is empty, using default values.")
             palina = "f13837"
             location = "3172768"
             unit = "metric"
             display = 128, 64
-            #write this as a config file
+            
             config = {
                 "transport": {
                     "palina": "f13837"
@@ -53,20 +54,17 @@ class Hub:
             with open('config/config.json', 'w') as file:
                 json.dump(config, file, indent=4)
 
-
-                
         # Initialize the controllers
         self.cotralController = cotralController(palina)
         self.meteoController = meteoController(location, unit)
         self.displaycontroller = displaycontroller(display[0], display[1])
         
+        self.startup_command()
+
         # Start display thread
         self.display_stop_flag = False
         self.display_thread = threading.Thread(target=self.async_main_loop)
         self.display_thread.start()
-
-        
-        self.startup_command()
 
     def start_thread(self):
         thread = threading.Thread(target=self.startingup)
@@ -74,29 +72,32 @@ class Hub:
         return thread
 
     def startingup(self):
-        print("Starting up...")
+        self.response="Starting up.."
 
     def startup_command(self):
-        if self.current_state == stateEnum.STARTUP:
-            print("service already started")
-        else:
-            current_state = stateEnum.STARTUP
-            self.start_new_thread(current_state)
+        with self.lock:
+            if self.current_state == stateEnum.STARTUP:
+                print("service already started")
+            else:
+                self.current_state = stateEnum.STARTUP
+                self.start_new_thread(self.current_state)
 
     # Commands for buttons
     def command1(self):
-        if self.current_state == stateEnum.METEO:
-            print("service already started")
-        else:
-            current_state = stateEnum.METEO
-            self.start_new_thread(current_state)
+        with self.lock:
+            if self.current_state == stateEnum.METEO:
+                print("service already started")
+            else:
+                self.current_state = stateEnum.METEO
+                self.start_new_thread(self.current_state)
 
     def command2(self):
-        if self.current_state == stateEnum.COTRAL:
-            print("service already started")
-        else:
-            current_state = stateEnum.COTRAL
-            self.start_new_thread(current_state)
+        with self.lock:
+            if self.current_state == stateEnum.COTRAL:
+                print("service already started")
+            else:
+                self.current_state = stateEnum.COTRAL
+                self.start_new_thread(self.current_state)
 
     def command3(self):
         pass
@@ -109,8 +110,8 @@ class Hub:
         pass            
 
     def start_new_thread(self, state):
-        self.meteoController.stop_flag=True
-        self.cotralController.stop_flag=True
+        self.meteoController.setStopFlag(True)
+        self.cotralController.setStopFlag(True)
     
         match state:
             case stateEnum.STARTUP:
@@ -121,24 +122,23 @@ class Hub:
                 
             case _:
                 print("Invalid state.")
-        self.current_state = state
 
     def async_main_loop(self):
-        #chiama la funzione per scrivere sul display, passandogli lo stato corrente e i dati
-        data=None
-        # ci va un while con una condizone di spegnimento del sistema
+        data = None
         while not self.display_stop_flag:  
-           # print("state: ", self.current_state, "data: ",data,"display: ", self.display_stop_flag)      
-            match self.current_state:
-                case stateEnum.STARTUP:
-                    data="Starting up..."
-                case stateEnum.METEO:
-                    data=self.meteoController.response
-                case stateEnum.COTRAL:
-                    data=self.cotralController.response
-                case _:
-                    print("Invalid state.")
-            #self.displaycontroller.write_on_display(self.current_state, data)
+            with self.lock:
+                match self.current_state:
+                    case stateEnum.STARTUP:
+                        data = self.response
+                    case stateEnum.METEO:
+                        data = self.meteoController.response
+                    case stateEnum.COTRAL:
+                        data = self.cotralController.response
+                    case _:
+                        print("Invalid state.")
+            sleep(0.1)
+            self.displaycontroller.write_on_display(self.current_state, data)
+
 # Function to handle window close event
 def on_closing():
     print("Closing the window...")
@@ -152,7 +152,6 @@ def on_closing():
     root.quit()  
     root.destroy()  
 
-
 if __name__ == "__main__":
     hub = Hub()
 
@@ -163,10 +162,6 @@ if __name__ == "__main__":
 
     # Bind the window close event to the on_closing function
     root.protocol("WM_DELETE_WINDOW", on_closing)
-
-    # Information display section
-    info_label = tk.Label(root, text="Welcome to the Home Hub!", bg="white", anchor="w", relief="solid")
-    info_label.pack(fill=tk.BOTH, padx=5, pady=5)
 
     # Button section
     button_frame = tk.Frame(root)
@@ -182,5 +177,3 @@ if __name__ == "__main__":
     root.mainloop()
 
     print("Exiting...")
-    
-    

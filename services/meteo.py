@@ -12,6 +12,9 @@ class Meteo_controller:
         self.thread = None
         self.appid = os.getenv('OPENWEATHER_API_KEY')
         self.base_url = 'http://api.openweathermap.org/data/2.5//forecast'
+
+    def setStopFlag(self, status):
+        self.stop_flag = status
         
     def thread_function(self):
 
@@ -23,14 +26,17 @@ class Meteo_controller:
             'mode': 'json'
         }
         print("Thread started")
-###  LA QUERY NON FUNZIONA
+        
         while not self.stop_flag:
+            print("Fetching data from the API")
             response = requests.get(self.base_url, params=params)
             if response.status_code == 200:
-                print(response.json())
-                self.response = response.json()
+                data = response.json()
+                #analisi e scrematura dati
+                self.response = data
             else:
                 print("Error while fetching data from the API")
+
             sleep(1)
         
     def start_thread(self,):
