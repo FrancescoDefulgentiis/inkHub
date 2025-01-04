@@ -4,7 +4,7 @@ import os
 from time import sleep
 from dotenv import load_dotenv
 class Meteo_controller:
-    def __init__(self, locationId, unit):
+    def __init__(self, locationId, unit,refresh):
         load_dotenv()
         self.locationId = locationId
         self.unit = unit
@@ -13,7 +13,7 @@ class Meteo_controller:
         self.thread = None
         self.appid = os.getenv('OPENWEATHER_API_KEY')
         self.base_url = 'http://api.openweathermap.org/data/2.5//forecast'
-
+        self.refresh = refresh
     def setStopFlag(self, status):
         self.stop_flag = status
         
@@ -28,7 +28,6 @@ class Meteo_controller:
         }
         
         while not self.stop_flag:
-            print("Fetching data from the API")
             url = requests.Request('GET', self.base_url, params=params).prepare().url
             response = requests.get(url)
             if response.status_code == 200:
@@ -39,7 +38,7 @@ class Meteo_controller:
                 print("Error while fetching data from the API")
                 print("Status code: ", response.status_code)
 
-            sleep(1)
+            sleep(self.refresh)
         
     def start_thread(self,):
         self.stop_flag = False

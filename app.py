@@ -3,6 +3,7 @@ import threading
 from enums.stateEnum import StateEnum as stateEnum
 from services.cotral import Cotral_controller as cotralController
 from services.meteo import Meteo_controller as meteoController
+from services.clock import Clock_controller as clockController
 import json
 from services.display import Display_controller as displaycontroller
 from time import sleep
@@ -26,37 +27,43 @@ class Hub:
             config = {}
         
         # Load the data from the config file
-        if config:
-            palina = config['transport']['palina']
-            location = config['meteo']['location']
-            unit = config['meteo']['unit']
-            display = config['display']['width'], config['display']['height']
-        else:
-            print("Config file is empty, using default values.")
-            palina = "f13837"
-            location = "3172768"
-            unit = "metric"
-            display = 128, 64
-            
-            config = {
+        if not config:
+            config ={
                 "transport": {
-                    "palina": "f13837"
+                    "palina": "f13837",
+                    "refresh": 30000
                 },
                 "meteo": {
-                    "location":"3172768",
-                    "unit":"metric"
+                    "location": "3172768",
+                    "unit": "metric",
+                    "refresh": 300000
                 },
                 "display": {
                     "width": 128,
-                    "height": 64
+                    "height": 64,
+                    "refresh": 1000
+                },
+                "clock":{
+                    "format": "Y/M/D  HH:mm",
+                    "refresh": 60
                 }
-            }
+                }
+            print("Config file is empty, using default values.")
             with open('config/config.json', 'w') as file:
                 json.dump(config, file, indent=4)
+        palina = config['transport']['palina']
+        palina_refresh = config['transport']['refresh']
+        meteo_location = config['meteo']['location']
+        meteo_refresh = config['meteo']['refresh']
+        unit = config['meteo']['unit']
+        display = config['display']['width'], config['display']['height']
+        clock_refresh = config['clock']['refresh']
+        clock_format = config['clock']['format']
 
         # Initialize the controllers
-        self.cotralController = cotralController(palina)
-        self.meteoController = meteoController(location, unit)
+        self.cotralController = cotralController(palina, palina_refresh)
+        self.meteoController = meteoController(meteo_location, unit, meteo_refresh)
+        self.clockController = clockController(clock_format, clock_refresh)
         self.displaycontroller = displaycontroller(display[0], display[1])
         
         self.startup_command()
@@ -65,6 +72,29 @@ class Hub:
         self.display_stop_flag = False
         self.display_thread = threading.Thread(target=self.async_main_loop)
         self.display_thread.start()
+
+
+    def setStopFlag(self, status):
+        self.display_stop_flag = status
+
+    def StopAllThreads(self):
+        self.meteoController.setStopFlag(True)
+        self.cotralController.setStopFlag(True)
+        self.clockController.setStopFlag(True)
+        self.setStopFlag(True)
+        
+        if self.current_thread and self.current_thread.is_alive():
+            self.current_thread.join()
+        if self.display_thread and self.display_thread.is_alive():
+            self.display_thread.join()
+        if self.meteoController.thread and self.meteoController.thread.is_alive():
+            self.meteoController.thread.join()
+        if self.cotralController.thread and self.cotralController.thread.is_alive():
+            self.cotralController.thread.join()
+        if self.clockController.thread and self.clockController.thread.is_alive():
+            self.clockController.thread.join()
+        
+
 
     def start_thread(self):
         thread = threading.Thread(target=self.startingup)
@@ -100,7 +130,12 @@ class Hub:
                 self.start_new_thread(self.current_state)
 
     def command3(self):
-        pass
+        with self.lock:
+            if self.current_state == stateEnum.CLOCK:
+                print("service already started")
+            else:
+                self.current_state = stateEnum.CLOCK
+                self.start_new_thread(self.current_state)
 
     def command4(self):
         pass
@@ -112,14 +147,16 @@ class Hub:
     def start_new_thread(self, state):
         self.meteoController.setStopFlag(True)
         self.cotralController.setStopFlag(True)
-    
+        self.clockController.setStopFlag(True)
         match state:
             case stateEnum.STARTUP:
                 self.current_thread = self.start_thread()
-
             case stateEnum.METEO:
                 self.meteoController.start_thread()
-                
+            case stateEnum.COTRAL:
+                self.cotralController.start_thread()
+            case stateEnum.CLOCK:
+                self.clockController.start_thread()
             case _:
                 print("Invalid state.")
 
@@ -134,6 +171,8 @@ class Hub:
                         data = self.meteoController.response
                     case stateEnum.COTRAL:
                         data = self.cotralController.response
+                    case stateEnum.CLOCK:
+                        data = self.clockController.response
                     case _:
                         print("Invalid state.")
             sleep(0.1)
@@ -143,11 +182,8 @@ class Hub:
 def on_closing():
     print("Closing the window...")
     # Set the stop flag to True to stop the display thread
-    hub.display_stop_flag = True
-    hub.meteoController.stop_flag = True
-    hub.cotralController.stop_flag = True
+    hub.StopAllThreads()
     # Wait for the display thread to finish
-    hub.display_thread.join()
     # Close the window
     root.quit()  
     root.destroy()  

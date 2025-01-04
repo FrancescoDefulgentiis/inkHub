@@ -1,13 +1,21 @@
 {
     "transport": {
-        "palina": "f13837"
+        "palina": "f13837",
+        "refresh": 1
     },
     "meteo": {
         "location": "3172768",
-        "unit": "metric"
+        "unit": "metric",
+       "refresh": 1
     },
     "display": {
         "width": 128,
-        "height": 64
+        "height": 64,
+        "refresh": 1
+    },
+    "clock":{
+        "format": "Y/M/D  HH:mm",
+        "refresh": 1
+
     }
 }
