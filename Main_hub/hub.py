@@ -16,7 +16,7 @@ class Hub:
 
         # Load config file
         try:
-            with open('../config/config.json', 'r') as file:
+            with open('config/config.json', 'r') as file:
                 config = json.load(file)
         except FileNotFoundError:
             print("Config file not found.")
@@ -177,4 +177,4 @@ if __name__ == "__main__":
     root.mainloop()
 
     print("Exiting...")
-    
+

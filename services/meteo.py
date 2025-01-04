@@ -2,9 +2,13 @@ import requests
 import threading
 import os
 from time import sleep
+from dotenv import load_dotenv
+
 
 class Meteo_controller:
     def __init__(self, locationId, unit):
+
+        load_dotenv()
         self.locationId = locationId
         self.unit = unit
         self.stop_flag= False
@@ -25,7 +29,6 @@ class Meteo_controller:
             'lang': 'en',
             'mode': 'json'
         }
-        print("Thread started")
         
         while not self.stop_flag:
             print("Fetching data from the API")

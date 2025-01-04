@@ -9,7 +9,7 @@ class Display_controller:
         self.state = None
 
     def write_on_display(self, state, data):
-        if self.data != data:
+        if self.data != data and data is not None:
             self.data = data
             match state:
                 case stateEnum.STARTUP:

@@ -28,7 +28,6 @@ class Cotral_controller:
         self.stop_thread = status
 
     def Get_data(self):
-        print("thread started")
         
         # Loop to fetch data until stop_thread is set to True
         while not self.stop_thread:
