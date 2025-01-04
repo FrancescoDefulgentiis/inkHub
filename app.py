@@ -7,7 +7,6 @@ from services.clock import Clock_controller as clockController
 import json
 from services.display import Display_controller as displaycontroller
 from time import sleep
-
 class Hub:
 
     def __init__(self):
@@ -29,6 +28,9 @@ class Hub:
         # Load the data from the config file
         if not config:
             config ={
+                "HUB":{
+                "refresh": 0.1
+                },
                 "transport": {
                     "palina": "f13837",
                     "refresh": 30000
@@ -57,9 +59,11 @@ class Hub:
         meteo_refresh = config['meteo']['refresh']
         unit = config['meteo']['unit']
         display = config['display']['width'], config['display']['height']
+        display_refresh = config['display']['refresh']
         clock_refresh = config['clock']['refresh']
         clock_format = config['clock']['format']
 
+        self.hub_refresh = config['HUB']['refresh']
         # Initialize the controllers
         self.cotralController = cotralController(palina, palina_refresh)
         self.meteoController = meteoController(meteo_location, unit, meteo_refresh)
@@ -175,7 +179,7 @@ class Hub:
                         data = self.clockController.response
                     case _:
                         print("Invalid state.")
-            sleep(0.1)
+            sleep(self.hub_refresh)
             self.displaycontroller.write_on_display(self.current_state, data)
 
 # Function to handle window close event

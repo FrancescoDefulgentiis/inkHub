@@ -1,4 +1,7 @@
 {
+    "HUB":{
+        "refresh": 0.1
+    },
     "transport": {
         "palina": "f13837",
         "refresh": 1
@@ -11,7 +14,7 @@
     "display": {
         "width": 128,
         "height": 64,
-        "refresh": 1
+        "refresh": 0.1
     },
     "clock":{
         "format": "Y/M/D  HH:mm",
