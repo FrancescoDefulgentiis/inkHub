@@ -27,7 +27,6 @@ class Meteo_controller:
             'lang': 'en',
             'mode': 'json'
         }
-        print("Thread started")
         
         while not self.stop_flag:
             print("Fetching data from the API")
