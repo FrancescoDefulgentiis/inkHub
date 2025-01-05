@@ -5,4 +5,5 @@ class StateEnum(Enum):
     STARTUP = "startup"
     TRANSPORT = "transport"
     METEO = "meteo"
-    COTRAL = "Cotral_controller"
+    COTRAL = "Cotral"
+    CLOCK = "Clock"

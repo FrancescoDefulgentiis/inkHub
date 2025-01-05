@@ -4,7 +4,7 @@ import os
 from time import sleep
 from dotenv import load_dotenv
 class Meteo_controller:
-    def __init__(self, location, unit):
+    def __init__(self, location, unit,refresh):
         load_dotenv()
         self.location = location
         self.unit = unit
@@ -13,6 +13,7 @@ class Meteo_controller:
         self.thread = None
         self.key = os.getenv('OPENWEATHER_API_KEY')
         self.forecast_url = 'http://api.weatherapi.com/v1/forecast.json'
+        self.refresh = refresh
 
     def setStopFlag(self, status):
         self.stop_flag = status
@@ -60,8 +61,7 @@ class Meteo_controller:
                 print("Error while fetching data from the API")
                 print("status code: ", forecast_response.status_code)
 
-            sleep(1)
-
+            sleep(self.refresh)
         
     def start_thread(self,):
         self.stop_flag = False

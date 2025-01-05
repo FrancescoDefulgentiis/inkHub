@@ -21,6 +21,8 @@ class Display_controller:
                 case stateEnum.COTRAL:
                     print(data)
 
+                case stateEnum.CLOCK:
+                    print(data)
                 case _:
                     print("Invalid state.")
         else:
