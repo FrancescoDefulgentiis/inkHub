@@ -119,34 +119,28 @@ class Hub:
     # Commands for buttons
     def command1(self):
         with self.lock:
-            if self.current_state == stateEnum.METEO:
-                print("service already started")
-            else:
-                self.current_state = stateEnum.METEO
-                self.start_new_thread(self.current_state)
+            self.current_state = list(stateEnum)[0]
+            self.start_new_thread(self.current_state)
 
     def command2(self):
         with self.lock:
-            if self.current_state == stateEnum.COTRAL:
-                print("service already started")
-            else:
-                self.current_state = stateEnum.COTRAL
-                self.start_new_thread(self.current_state)
+            self.current_state = list(stateEnum)[1]
+            self.start_new_thread(self.current_state)
 
     def command3(self):
         with self.lock:
-            if self.current_state == stateEnum.CLOCK:
-                print("service already started")
-            else:
-                self.current_state = stateEnum.CLOCK
-                self.start_new_thread(self.current_state)
+            self.current_state = list(stateEnum)[2]
+            self.start_new_thread(self.current_state)
 
     def command4(self):
-        pass
+        with self.lock:
+            self.current_state = list(stateEnum)[3]
+            self.start_new_thread(self.current_state)
 
     def command5(self):
-        print("command 5")
-        pass            
+        with self.lock:
+            self.current_state = list(stateEnum)[4]
+            self.start_new_thread(self.current_state)        
 
     def start_new_thread(self, state):
         self.meteoController.setStopFlag(True)

@@ -3,6 +3,7 @@ import threading
 import os
 from time import sleep
 from dotenv import load_dotenv
+
 class Meteo_controller:
     def __init__(self, location, unit,refresh):
         load_dotenv()
@@ -12,7 +13,7 @@ class Meteo_controller:
         self.precip_unit = 'mm' if unit == 'metric' else 'in'
         self.stop_flag= False
         self.response = None
-        self.thread = None
+        self.thread = threading.Thread(target=self.thread_function)
         self.key = os.getenv('OPENWEATHER_API_KEY')
         self.forecast_url = 'http://api.weatherapi.com/v1/forecast.json'
         self.refresh = refresh
@@ -29,7 +30,6 @@ class Meteo_controller:
         }
         
         while not self.stop_flag:
-            print("Fetching data from the API")
             forecast_url = requests.Request('GET', self.forecast_url, params=forecast_params).prepare().url
 
             forecast_response = requests.get(forecast_url)
@@ -44,6 +44,7 @@ class Meteo_controller:
                         'condition': forecast['condition']['text'],
                         'precip': forecast['precip_mm']
                 }
+                    
                 data = {
                     'location': self.location,
                     'max_temp': weather_data['forecast']['forecastday'][0]['day']['maxtemp_{0}'.format(self.temp_unit)],
@@ -64,6 +65,10 @@ class Meteo_controller:
             sleep(self.refresh)
         
     def start_thread(self,):
-        self.stop_flag = False
+        if self.thread.is_alive():
+            return
+        
+        self.stop_flag = False        
         self.thread = threading.Thread(target=self.thread_function)
         self.thread.start()
+        
