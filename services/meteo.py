@@ -7,7 +7,9 @@ class Meteo_controller:
     def __init__(self, location, unit,refresh):
         load_dotenv()
         self.location = location
-        self.unit = unit
+        self.temp_unit = 'c' if unit == 'metric' else 'f'
+        self.wind_unit = 'kph' if unit == 'metric' else 'mph'
+        self.precip_unit = 'mm' if unit == 'metric' else 'in'
         self.stop_flag= False
         self.response = None
         self.thread = None
@@ -38,18 +40,16 @@ class Meteo_controller:
                 forecasts = {}
                 for forecast in weather_data['forecast']['forecastday'][0]['hour']:
                     forecasts[forecast['time']] = {
-                        'temp': forecast['temp_c'],
+                        'temp': forecast['temp_{0}'.format(self.temp_unit)],
                         'condition': forecast['condition']['text'],
                         'precip': forecast['precip_mm']
                 }
-
                 data = {
                     'location': self.location,
-                    'unit': self.unit,
-                    'max_temp': weather_data['forecast']['forecastday'][0]['day']['maxtemp_c'],
-                    'min_temp': weather_data['forecast']['forecastday'][0]['day']['mintemp_c'],
-                    'max_wind': weather_data['forecast']['forecastday'][0]['day']['maxwind_kph'],
-                    'total_precip': weather_data['forecast']['forecastday'][0]['day']['totalprecip_mm'],
+                    'max_temp': weather_data['forecast']['forecastday'][0]['day']['maxtemp_{0}'.format(self.temp_unit)],
+                    'min_temp': weather_data['forecast']['forecastday'][0]['day']['mintemp_{0}'.format(self.temp_unit)],
+                    'max_wind': weather_data['forecast']['forecastday'][0]['day']['maxwind_{0}'.format(self.wind_unit)],
+                    'total_precip': weather_data['forecast']['forecastday'][0]['day']['totalprecip_{0}'.format(self.precip_unit)],
                     'avg_humidity': weather_data['forecast']['forecastday'][0]['day']['avghumidity'],
                     'sunset': weather_data['forecast']['forecastday'][0]['astro']['sunset'],
                     'sunrise': weather_data['forecast']['forecastday'][0]['astro']['sunrise'],
