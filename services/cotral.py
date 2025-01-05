@@ -17,12 +17,14 @@ class Cotral_controller:
     def setStopFlag(self, status):
         self.stop_thread = status
 
-    def start_thread(self):
+    def start_thread(self,):
         if self.thread.is_alive():
             return
-        self.stop_thread = False
+        
+        self.stop_flag = False         
         self.thread = threading.Thread(target=self.thread_function)
         self.thread.start()
+        
 
     def thread_function(self):
         Interested_data = ["arrivoCorsa","tempoTransito","ritardo"]

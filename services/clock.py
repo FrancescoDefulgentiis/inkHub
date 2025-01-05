@@ -19,9 +19,10 @@ class Clock_controller:
             self.response = datetime.now().strftime("%d/%m/%Y  %H:%M")
             time.sleep(self.refresh)    
 
-    def start_thread(self):
+    def start_thread(self,):
         if self.thread.is_alive():
             return
         
-        self.stop_thread = False
+        self.stop_flag = False 
+        self.thread = threading.Thread(target=self.thread_function)       
         self.thread.start()

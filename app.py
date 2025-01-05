@@ -53,6 +53,7 @@ class Hub:
             print("Config file is empty, using default values.")
             with open('config/config.json', 'w') as file:
                 json.dump(config, file, indent=4)
+
         palina = config['transport']['palina']
         palina_refresh = config['transport']['refresh']
         meteo_location = config['meteo']['location']
@@ -62,8 +63,8 @@ class Hub:
         display_refresh = config['display']['refresh']
         clock_refresh = config['clock']['refresh']
         clock_format = config['clock']['format']
-
         self.hub_refresh = config['HUB']['refresh']
+        
         # Initialize the controllers
         self.cotralController = cotralController(palina, palina_refresh)
         self.meteoController = meteoController(meteo_location, unit, meteo_refresh)
@@ -119,28 +120,32 @@ class Hub:
     # Commands for buttons
     def command1(self):
         with self.lock:
-            self.current_state = list(stateEnum)[0]
+            self.current_state = list(stateEnum)[1]
             self.start_new_thread(self.current_state)
 
     def command2(self):
         with self.lock:
-            self.current_state = list(stateEnum)[1]
+            self.current_state = list(stateEnum)[2]
             self.start_new_thread(self.current_state)
 
     def command3(self):
         with self.lock:
-            self.current_state = list(stateEnum)[2]
-            self.start_new_thread(self.current_state)
-
-    def command4(self):
-        with self.lock:
             self.current_state = list(stateEnum)[3]
             self.start_new_thread(self.current_state)
 
-    def command5(self):
+    def command4(self):
+        '''
         with self.lock:
             self.current_state = list(stateEnum)[4]
-            self.start_new_thread(self.current_state)        
+            self.start_new_thread(self.current_state)'''
+        pass
+
+    def command5(self):
+        '''
+        with self.lock:
+            self.current_state = list(stateEnum)[5]
+            self.start_new_thread(self.current_state)     '''   
+        pass
 
     def start_new_thread(self, state):
         self.meteoController.setStopFlag(True)
