@@ -13,6 +13,8 @@ class Hub:
         self.current_state = None
         self.lock = threading.Lock()
         self.response = None
+        self.current_thread = None
+        self.Enum_list=self.Enum_list    
 
         # Load config file
         try:
@@ -120,30 +122,30 @@ class Hub:
     # Commands for buttons
     def command1(self):
         with self.lock:
-            self.current_state = list(stateEnum)[1]
+            self.current_state = self.Enum_list[1]
             self.start_new_thread(self.current_state)
 
     def command2(self):
         with self.lock:
-            self.current_state = list(stateEnum)[2]
+            self.current_state = self.Enum_list[2]
             self.start_new_thread(self.current_state)
 
     def command3(self):
         with self.lock:
-            self.current_state = list(stateEnum)[3]
+            self.current_state = self.Enum_list[3]
             self.start_new_thread(self.current_state)
 
     def command4(self):
         '''
         with self.lock:
-            self.current_state = list(stateEnum)[4]
+            self.current_state = self.Enum_list[4]
             self.start_new_thread(self.current_state)'''
         pass
 
     def command5(self):
         '''
         with self.lock:
-            self.current_state = list(stateEnum)[5]
+            self.current_state = self.Enum_list[5]
             self.start_new_thread(self.current_state)     '''   
         pass
 
@@ -168,13 +170,13 @@ class Hub:
         while not self.display_stop_flag:  
             with self.lock:
                 match self.current_state:
-                    case stateEnum.STARTUP:
+                    case self.STARTUP:
                         data = self.response
-                    case stateEnum.METEO:
+                    case self.METEO:
                         data = self.meteoController.response
-                    case stateEnum.COTRAL:
+                    case self.COTRAL:
                         data = self.cotralController.response
-                    case stateEnum.CLOCK:
+                    case self.CLOCK:
                         data = self.clockController.response
                     case _:
                         print("Invalid state.")

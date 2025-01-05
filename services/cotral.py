@@ -18,12 +18,18 @@ class Cotral_controller:
         self.stop_thread = status
 
     def start_thread(self,):
-        if self.thread.is_alive():
-            return
-        
-        self.stop_flag = False         
-        self.thread = threading.Thread(target=self.thread_function)
-        self.thread.start()
+        if  not self.thread:    
+            self.stop_thread = False
+            self.thread = threading.Thread(target=self.thread_function)     
+            self.thread.start()
+        else:
+            if self.thread.is_alive():
+                self.stop_thread = False
+                print("Thread already running")
+            else:
+                self.stop_thread = False
+                self.thread = threading.Thread(target=self.thread_function)     
+                self.thread.start()
         
 
     def thread_function(self):

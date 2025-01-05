@@ -2,8 +2,7 @@ from enum import Enum
 
 class StateEnum(Enum):
     STARTUP = "startup"
-    
-    METEO = "meteo"
+    METEO = "Meteo"
     COTRAL = "Cotral"
     CLOCK = "Clock"
     PLANTS = "plants"

@@ -1,6 +1,5 @@
-# Python bytecode files
-__pycache__/
-*.pyc
-
-# Environment variables file
 .env
+# Ignore compiled Python files
+*.pyc
+__pycache__/
+

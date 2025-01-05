@@ -11,7 +11,7 @@ class Meteo_controller:
         self.temp_unit = 'c' if unit == 'metric' else 'f'
         self.wind_unit = 'kph' if unit == 'metric' else 'mph'
         self.precip_unit = 'mm' if unit == 'metric' else 'in'
-        self.stop_flag= False
+        self.stop_thread= False
         self.response = None
         self.thread = threading.Thread(target=self.thread_function)
         self.key = os.getenv('OPENWEATHER_API_KEY')
@@ -19,7 +19,7 @@ class Meteo_controller:
         self.refresh = refresh
 
     def setStopFlag(self, status):
-        self.stop_flag = status
+        self.stop_thread = status
         
     def thread_function(self):
 
@@ -29,7 +29,7 @@ class Meteo_controller:
             'aqi': 'yes',
         }
         
-        while not self.stop_flag:
+        while not self.stop_thread:
             forecast_url = requests.Request('GET', self.forecast_url, params=forecast_params).prepare().url
 
             forecast_response = requests.get(forecast_url)
@@ -65,10 +65,15 @@ class Meteo_controller:
             sleep(self.refresh)
         
     def start_thread(self,):
-        if self.thread.is_alive():
-            return
-        
-        self.stop_flag = False        
-        self.thread = threading.Thread(target=self.thread_function)
-        self.thread.start()
-        
+        if  not self.thread:    
+            self.stop_thread = False
+            self.thread = threading.Thread(target=self.thread_function)     
+            self.thread.start()
+        else:
+            if self.thread.is_alive():
+                self.stop_thread = False
+                print("Thread already running")
+            else:
+                self.stop_thread = False
+                self.thread = threading.Thread(target=self.thread_function)     
+                self.thread.start()
