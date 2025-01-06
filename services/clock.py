@@ -1,6 +1,5 @@
 import time
 from datetime import datetime
-import threading
 from Controller_template import Controller_template
 
 class Clock_controller(Controller_template):

@@ -2,10 +2,12 @@ import tkinter as tk
 import threading
 from services import __path__ as services_path  # Get the services folder path
 from services import load_controllers
+from displays import __path__ as displays_path
+from displays import load_displays
 import Controller_template
+import Display_template
 import os
 import json
-from displays.display import Display_controller as displaycontroller
 from time import sleep
 class Hub:
 
@@ -57,8 +59,8 @@ class Hub:
         self.hub_refresh = config["HUB"]["refresh"]
 
         #Load data from the config file and initialize the controllers dinamically
-        folder_path = os.path.abspath(services_path[0])
-        self.controllers=load_controllers(folder_path,base_class=Controller_template.Controller_template)
+        controller_path = os.path.abspath(services_path[0])
+        self.controllers=load_controllers(controller_path,base_class=Controller_template.Controller_template)
         self.Enum_list=list(self.controllers.keys())
         for element in self.Enum_list:
             if config.get(element.lower(),):
@@ -71,9 +73,10 @@ class Hub:
         
 
         # Start display thread
-        display = [config.get("DISPLAY", {}).get("width", 128), config.get("DISPLAY", {}).get("height", 64)]
-        self.displaycontroller = displaycontroller(display[0], display[1])
-        self.display_stop_flag = False
+        display_path= os.path.abspath(displays_path[0])
+        self.displays=load_displays(display_path,base_class=Display_template.Display_Template)
+        print(self.displays)
+        self.display_stop_flag=False
         self.display_thread = threading.Thread(target=self.async_main_loop)
         self.display_thread.start()
 
@@ -99,17 +102,12 @@ class Hub:
         for item in self.controllers.values():
             item.setStopFlag(True)
         self.controllers[state].start_thread()
-        
+
     def async_main_loop(self):
         while not self.display_stop_flag:  
             with self.lock:
-                    data = self.controllers.get(self.current_state)
-                    if data:
-                        data=data.response
-                    else:
-                        data = self.response
-                    self.displaycontroller.write_on_display(self.current_state, data)
-                    sleep(self.hub_refresh)
+                #print(self.displays.get(self.current_state))
+                self.displays.get(self.current_state,Display_template.Display_Template())._write_on_display(self.controllers.get(self.current_state,"starting app"))
 
 # Function to handle window close event
 def on_closing():
