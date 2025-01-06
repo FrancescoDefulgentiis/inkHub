@@ -26,7 +26,7 @@ def load_controllers(folder_path, base_class=None):
             for attr_name in dir(module):
                 attr = getattr(module, attr_name)
                 if isinstance(attr, type) and (base_class is None or issubclass(attr, base_class)):
-                    if attr_name != 'Controller_template':
+                    if attr != base_class:
                         controllers[module_name] = attr  # Store the class reference (not the inner dict)
-                        break  # Stop after storing the first valid controller class
+                        break # Stop after storing the first valid controller class
     return controllers

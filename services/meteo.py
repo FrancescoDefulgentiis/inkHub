@@ -55,7 +55,6 @@ class Meteo_controller(Controller_template):
                     'sunrise': weather_data['forecast']['forecastday'][0]['astro']['sunrise'],
                     'forecasts': forecasts
                 }
-
                 self.response = data
             else:
                 print("Error while fetching data from the API")

@@ -13,26 +13,30 @@ def load_displays(folder_path, base_class=None):
     
     # Ensure the folder path is relative to the script location
     folder_path = os.path.abspath(folder_path)  # Convert to absolute path
-    folder_name = os.path.basename(folder_path)  # Get the last part of the path (e.g., 'displays')
-
     # Loop through all files in the folder
-    for file in os.listdir(folder_path):
-        if file.endswith(".py") and file != "__init__.py":  # Ignore init files
-            module_name = file[:-3]  # Remove ".py" to get the module name
-            module_full_name = f"{folder_name}.{module_name}"  # Construct module name relative to the folder
-
-            try:
-                # Dynamically import the module
-                module = importlib.import_module(module_full_name)
-
-                # Store only the classes that inherit from base_class
-                for attr_name in dir(module):
-                    attr = getattr(module, attr_name)
-                    if isinstance(attr, type) and (base_class is None or issubclass(attr, base_class)):
-                        if attr_name != 'Display_template':  # Avoid storing base class
-                            displays[module_name] = attr  # Store the class reference
-                            break  # Stop after storing the first valid class
-            except ModuleNotFoundError:
-                print(f"Module {module_full_name} not found.")
+    """
+    Dynamically imports all modules from a folder and adds controller class references
+    for all matching objects (e.g., classes).
     
-    return displays
+    Args:
+        folder_path (str): The folder containing the modules.
+        base_class (type): If specified, only load classes that are subclasses of this class.
+    
+    Returns:
+        dict: A dictionary of controller class references, keyed by class name.
+    """
+    controllers = {}
+    for file in os.listdir(folder_path):
+        if file.endswith(".py") and file != "__init__.py":
+            module_name = file[:-3]  # Remove ".py" to get the module name
+            module = importlib.import_module(f"displays.{module_name}")  # Dynamically import the module
+            
+            # Store only the actual controller class (exclude Controller_template)
+            for attr_name in dir(module):
+
+                attr = getattr(module, attr_name)
+                if isinstance(attr, type) and (base_class is None or issubclass(attr, base_class)):
+                    if attr != base_class:
+                        controllers[module_name] = attr  # Store the class reference (not the inner dict)
+                        break  # Stop after storing the first valid controller class
+    return controllers
