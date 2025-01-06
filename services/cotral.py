@@ -3,35 +3,16 @@ import threading
 import xml.etree.ElementTree as ET
 from time import sleep
 from datetime import timedelta
-
-class Cotral_controller:
-    def __init__(self, stop_index,refresh):
+from Controller_template import Controller_template
+class Cotral_controller(Controller_template):
+    def __init__(self, args):
         # Initialize URLs and stop index
-        self.cotral_stop = stop_index
+        self.cotral_stop = args["palina"]
         self.response = None
         self.thread = threading.Thread(target=self.thread_function)
         self.stop_thread = False
         self.cotral_url = "http://travel.mob.cotralspa.it:7777/beApp/PIV.do"
-        self.refresh = refresh
-
-    def setStopFlag(self, status):
-        self.stop_thread = status
-
-    def start_thread(self,):
-        if  not self.thread:    
-            self.stop_thread = False
-            self.thread = threading.Thread(target=self.thread_function)     
-            self.thread.start()
-        else:
-            if self.thread.is_alive():
-                self.stop_thread = False
-                print("Thread already running")
-            else:
-                self.stop_thread = False
-                self.thread = threading.Thread(target=self.thread_function)     
-                self.thread.start()
-        
-
+        self.refresh = args["refresh"]
     def thread_function(self):
         Interested_data = ["arrivoCorsa","tempoTransito","ritardo"]
 

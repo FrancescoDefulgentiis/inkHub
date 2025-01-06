@@ -2,23 +2,22 @@
     "HUB":{
         "refresh": 0.1
     },
-    "transport": {
+    "COTRAL": {
         "palina": "f13837",
         "refresh": 1
     },
-    "meteo": {
+    "METEO": {
         "location": "Monterotondo",
         "unit": "metric",
         "refresh": 1
     },
-    "display": {
+    "DISPLAY": {
         "width": 128,
         "height": 64,
         "refresh": 0.1
     },
-    "clock":{
+    "CLOCK":{
         "format": "Y/M/D  HH:mm",
         "refresh": 1
-
     }
 }

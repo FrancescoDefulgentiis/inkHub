@@ -1,21 +1,18 @@
 import tkinter as tk
 import threading
-from enums.stateEnum import StateEnum as stateEnum
-from services.cotral import Cotral_controller as cotralController
-from services.meteo import Meteo_controller as meteoController
-from services.clock import Clock_controller as clockController
+from services import __path__ as services_path  # Get the services folder path
+from services import load_controllers
+import Controller_template
+import os
 import json
-from services.display import Display_controller as displaycontroller
+from displays.display import Display_controller as displaycontroller
 from time import sleep
 class Hub:
 
     def __init__(self):
         self.current_state = None
         self.lock = threading.Lock()
-        self.response = None
-        self.current_thread = None
-        self.Enum_list=self.Enum_list    
-
+        self.response = "starting app .."
         # Load config file
         try:
             with open('config/config.json', 'r') as file:
@@ -56,26 +53,26 @@ class Hub:
             with open('config/config.json', 'w') as file:
                 json.dump(config, file, indent=4)
 
-        palina = config['transport']['palina']
-        palina_refresh = config['transport']['refresh']
-        meteo_location = config['meteo']['location']
-        meteo_refresh = config['meteo']['refresh']
-        unit = config['meteo']['unit']
-        display = config['display']['width'], config['display']['height']
-        display_refresh = config['display']['refresh']
-        clock_refresh = config['clock']['refresh']
-        clock_format = config['clock']['format']
-        self.hub_refresh = config['HUB']['refresh']
+        # Load the refresh rate for the hub
+        self.hub_refresh = config["HUB"]["refresh"]
+
+        #Load data from the config file and initialize the controllers dinamically
+        folder_path = os.path.abspath(services_path[0])
+        self.controllers=load_controllers(folder_path,base_class=Controller_template.Controller_template)
+        self.Enum_list=list(self.controllers.keys())
+        for element in self.Enum_list:
+            if config.get(element.lower(),):
+                controller_class = self.controllers[element.lower()] 
+                self.controllers[element] = controller_class(config[element.lower()])
+            if config.get(element.upper()):
+                controller_class = self.controllers[element] 
+                self.controllers[element] = controller_class(config[element.upper()]) 
+
         
-        # Initialize the controllers
-        self.cotralController = cotralController(palina, palina_refresh)
-        self.meteoController = meteoController(meteo_location, unit, meteo_refresh)
-        self.clockController = clockController(clock_format, clock_refresh)
-        self.displaycontroller = displaycontroller(display[0], display[1])
-        
-        self.startup_command()
 
         # Start display thread
+        display = [config.get("DISPLAY", {}).get("width", 128), config.get("DISPLAY", {}).get("height", 64)]
+        self.displaycontroller = displaycontroller(display[0], display[1])
         self.display_stop_flag = False
         self.display_thread = threading.Thread(target=self.async_main_loop)
         self.display_thread.start()
@@ -85,107 +82,37 @@ class Hub:
         self.display_stop_flag = status
 
     def StopAllThreads(self):
-        self.meteoController.setStopFlag(True)
-        self.cotralController.setStopFlag(True)
-        self.clockController.setStopFlag(True)
         self.setStopFlag(True)
-        
-        if self.current_thread and self.current_thread.is_alive():
-            self.current_thread.join()
-        if self.display_thread and self.display_thread.is_alive():
-            self.display_thread.join()
-        if self.meteoController.thread and self.meteoController.thread.is_alive():
-            self.meteoController.thread.join()
-        if self.cotralController.thread and self.cotralController.thread.is_alive():
-            self.cotralController.thread.join()
-        if self.clockController.thread and self.clockController.thread.is_alive():
-            self.clockController.thread.join()
-        
+        for item in self.controllers.values():
+            item.setStopFlag(True)
+            if item.thread and  item.thread.is_alive():
+                item.thread.join()
 
-
-    def start_thread(self):
-        thread = threading.Thread(target=self.startingup)
-        thread.start()
-        return thread
-
-    def startingup(self):
-        self.response="Starting up.."
-
-    def startup_command(self):
+    def create_command(self, index):
+        return lambda: self._command(index)
+    def _command(self, index):
         with self.lock:
-            if self.current_state == stateEnum.STARTUP:
-                print("service already started")
-            else:
-                self.current_state = stateEnum.STARTUP
-                self.start_new_thread(self.current_state)
-
-    # Commands for buttons
-    def command1(self):
-        with self.lock:
-            self.current_state = self.Enum_list[1]
+            self.current_state = self.Enum_list[index]
             self.start_new_thread(self.current_state)
-
-    def command2(self):
-        with self.lock:
-            self.current_state = self.Enum_list[2]
-            self.start_new_thread(self.current_state)
-
-    def command3(self):
-        with self.lock:
-            self.current_state = self.Enum_list[3]
-            self.start_new_thread(self.current_state)
-
-    def command4(self):
-        '''
-        with self.lock:
-            self.current_state = self.Enum_list[4]
-            self.start_new_thread(self.current_state)'''
-        pass
-
-    def command5(self):
-        '''
-        with self.lock:
-            self.current_state = self.Enum_list[5]
-            self.start_new_thread(self.current_state)     '''   
-        pass
-
+   
     def start_new_thread(self, state):
-        self.meteoController.setStopFlag(True)
-        self.cotralController.setStopFlag(True)
-        self.clockController.setStopFlag(True)
-        match state:
-            case stateEnum.STARTUP:
-                self.current_thread = self.start_thread()
-            case stateEnum.METEO:
-                self.meteoController.start_thread()
-            case stateEnum.COTRAL:
-                self.cotralController.start_thread()
-            case stateEnum.CLOCK:
-                self.clockController.start_thread()
-            case _:
-                print("Invalid state.")
-
+        for item in self.controllers.values():
+            item.setStopFlag(True)
+        self.controllers[state].start_thread()
+        
     def async_main_loop(self):
-        data = None
         while not self.display_stop_flag:  
             with self.lock:
-                match self.current_state:
-                    case self.STARTUP:
+                    data = self.controllers.get(self.current_state)
+                    if data:
+                        data=data.response
+                    else:
                         data = self.response
-                    case self.METEO:
-                        data = self.meteoController.response
-                    case self.COTRAL:
-                        data = self.cotralController.response
-                    case self.CLOCK:
-                        data = self.clockController.response
-                    case _:
-                        print("Invalid state.")
-            sleep(self.hub_refresh)
-            self.displaycontroller.write_on_display(self.current_state, data)
+                    self.displaycontroller.write_on_display(self.current_state, data)
+                    sleep(self.hub_refresh)
 
 # Function to handle window close event
 def on_closing():
-    print("Closing the window...")
     # Set the stop flag to True to stop the display thread
     hub.StopAllThreads()
     # Wait for the display thread to finish
@@ -209,9 +136,8 @@ if __name__ == "__main__":
     button_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
 
     # Add five buttons
-    commands = [hub.command1, hub.command2, hub.command3, hub.command4, hub.command5]
-    for i in range(5):
-        btn = tk.Button(button_frame, text=f"Button {i+1}", command=commands[i])
+    for i in range(len(hub.Enum_list)):
+        btn = tk.Button(button_frame, text=f"{hub.Enum_list[i]}", command=hub.create_command(i))
         btn.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 
     # Start the GUI loop

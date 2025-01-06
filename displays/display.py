@@ -12,10 +12,9 @@ class Display_controller:
         if self.data != data and data is not None:
             self.data = data
             match state:
-                case stateEnum.STARTUP:
-                    print(data)
+
                     
-                case stateEnum.METEO:
+                case "meteo":
                     # This are all the needed data for the interface
                     print('Location: ' + data['location'])
                     print('Max Temp: ' + str(data['max_temp']))
@@ -29,10 +28,12 @@ class Display_controller:
                     print('precip-> ' + ' -> '.join([str(data['forecasts'][key]['precip']) for key in data['forecasts']]))
                     print('now: ' + data['forecasts']['2025-01-05 00:00']['condition'] + '\nin an hour: ' + data['forecasts']['2025-01-05 01:00']['condition'] + '\nin three hours: ' + data['forecasts']['2025-01-05 03:00']['condition'] + '\nin twelve hours: ' + data['forecasts']['2025-01-05 12:00']['condition'])
 
-                case stateEnum.COTRAL:
+                case "cotral":
                     print(data)
 
-                case stateEnum.CLOCK:
+                case "clock":
+                    print(data)
+                case None:
                     print(data)
                 case _:
                     print("Invalid state.")

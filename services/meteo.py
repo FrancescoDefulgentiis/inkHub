@@ -3,11 +3,13 @@ import threading
 import os
 from time import sleep
 from dotenv import load_dotenv
+from Controller_template import Controller_template
 
-class Meteo_controller:
-    def __init__(self, location, unit,refresh):
+class Meteo_controller(Controller_template):
+    def __init__(self, args):
         load_dotenv()
-        self.location = location
+        self.location = args['location']
+        unit = args['unit']
         self.temp_unit = 'c' if unit == 'metric' else 'f'
         self.wind_unit = 'kph' if unit == 'metric' else 'mph'
         self.precip_unit = 'mm' if unit == 'metric' else 'in'
@@ -16,11 +18,8 @@ class Meteo_controller:
         self.thread = threading.Thread(target=self.thread_function)
         self.key = os.getenv('OPENWEATHER_API_KEY')
         self.forecast_url = 'http://api.weatherapi.com/v1/forecast.json'
-        self.refresh = refresh
+        self.refresh = args['refresh']
 
-    def setStopFlag(self, status):
-        self.stop_thread = status
-        
     def thread_function(self):
 
         forecast_params = {
@@ -63,17 +62,4 @@ class Meteo_controller:
                 print("status code: ", forecast_response.status_code)
 
             sleep(self.refresh)
-        
-    def start_thread(self,):
-        if  not self.thread:    
-            self.stop_thread = False
-            self.thread = threading.Thread(target=self.thread_function)     
-            self.thread.start()
-        else:
-            if self.thread.is_alive():
-                self.stop_thread = False
-                print("Thread already running")
-            else:
-                self.stop_thread = False
-                self.thread = threading.Thread(target=self.thread_function)     
-                self.thread.start()
+
