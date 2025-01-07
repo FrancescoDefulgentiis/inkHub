@@ -2,8 +2,8 @@ import requests
 import threading
 import xml.etree.ElementTree as ET
 from time import sleep
-from datetime import timedelta
-from Controller_template import Controller_template
+from templates.Controller_template import Controller_template
+
 class Cotral_controller(Controller_template):
     def __init__(self, args):
         # Initialize URLs and stop index

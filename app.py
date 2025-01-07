@@ -4,8 +4,8 @@ from services import __path__ as services_path  # Get the services folder path
 from services import load_controllers
 from displays import __path__ as displays_path
 from displays import load_displays
-import Controller_template
-import Display_template
+import templates.Controller_template as Controller_template
+import templates.Display_template as Display_template
 import displays
 import os
 import json
@@ -17,7 +17,7 @@ class Hub:
         self.current_state = None
         self.lock = threading.Lock()
         self.response = "starting app .."
-        # Load config file
+
         try:
             with open('config/config.json', 'r') as file:
                 config = json.load(file)
@@ -28,7 +28,6 @@ class Hub:
             print("Error decoding JSON from the config file.")
             config = {}
         
-        # Load the data from the config file
         if not config:
             config ={
                 "HUB":{
@@ -57,15 +56,12 @@ class Hub:
             with open('config/config.json', 'w') as file:
                 json.dump(config, file, indent=4)
 
-        # Load the refresh rate for the hub
         self.hub_refresh = config["HUB"]["refresh"]
 
-        import importlib
-
-        #Load data from the config file and initialize the controllers dinamically
         controller_path = os.path.abspath(services_path[0])
         self.controllers=load_controllers(controller_path,base_class=Controller_template.Controller_template)
         self.Enum_list=list(self.controllers.keys())
+
         for element in self.Enum_list:
             if config.get(element.lower(),):
                 controller_class = self.controllers[element.lower()] 
@@ -73,16 +69,15 @@ class Hub:
             if config.get(element.upper()):
                 controller_class = self.controllers[element] 
                 self.controllers[element] = controller_class(config[element.upper()]) 
-
-        
-
-        # Start display thread
-        display_path= os.path.abspath(displays_path[0])
+                display_path= os.path.abspath(displays_path[0])
+                
         self.displays=load_displays(display_path,base_class=Display_template.Display_template)
+
         for display in self.displays.keys():
             self.displays[display]=self.displays[display]()
+
         self.displays[None]=Display_template.Display_template()
-        #print(self.displays)
+
         self.display_stop_flag=False
         self.display_thread = threading.Thread(target=self.async_main_loop)
         self.display_thread.start()
@@ -100,6 +95,7 @@ class Hub:
 
     def create_command(self, index):
         return lambda: self._command(index)
+    
     def _command(self, index):
         with self.lock:
             self.current_state = self.Enum_list[index]
@@ -114,31 +110,26 @@ class Hub:
         while not self.display_stop_flag:  
             with self.lock:
                 self.displays.get(self.current_state,Display_template.Display_template())._write_on_display(self.controllers.get(self.current_state,self).response)
-# Function to handle window close event
+                sleep(self.hub_refresh)
+
 def on_closing():
-    # Set the stop flag to True to stop the display thread
+
     hub.StopAllThreads()
-    # Wait for the display thread to finish
-    # Close the window
     root.quit()  
     root.destroy()  
 
 if __name__ == "__main__":
     hub = Hub()
 
-    # Create the main window
     root = tk.Tk()
     root.title("Home Hub")
-    root.geometry("400x300")  # Set the size of the window
+    root.geometry("400x60")
 
-    # Bind the window close event to the on_closing function
     root.protocol("WM_DELETE_WINDOW", on_closing)
 
-    # Button section
     button_frame = tk.Frame(root)
     button_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
 
-    # Add five buttons
     for i in range(len(hub.Enum_list)):
         btn = tk.Button(button_frame, text=f"{hub.Enum_list[i]}", command=hub.create_command(i))
         btn.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)

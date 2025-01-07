@@ -3,7 +3,7 @@ import threading
 import os
 from time import sleep
 from dotenv import load_dotenv
-from Controller_template import Controller_template
+from templates.Controller_template import Controller_template
 
 class Meteo_controller(Controller_template):
     def __init__(self, args):
@@ -38,12 +38,12 @@ class Meteo_controller(Controller_template):
 
                 forecasts = {}
                 for forecast in weather_data['forecast']['forecastday'][0]['hour']:
-                    forecasts[forecast['time']] = {
+                    forecasts[forecast['time_epoch']] = {
                         'temp': forecast['temp_{0}'.format(self.temp_unit)],
                         'condition': forecast['condition']['text'],
                         'precip': forecast['precip_mm']
                 }
-                    
+                                    
                 data = {
                     'location': self.location,
                     'max_temp': weather_data['forecast']['forecastday'][0]['day']['maxtemp_{0}'.format(self.temp_unit)],

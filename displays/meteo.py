@@ -1,7 +1,11 @@
-from Display_template import Display_template
+from templates.Display_template import Display_template
+import time
 
 class Meteo_display(Display_template):
     def write_on_display(self):     # This are all the needed self.data for the interface
+
+        unix_time_now = int(time.time())
+
         print('Location: ' + self.data['location'])
         print('Max Temp: ' + str(self.data['max_temp']))
         print('Min Temp: ' + str(self.data['min_temp']))
@@ -12,4 +16,10 @@ class Meteo_display(Display_template):
         print('Sunrise: ' + self.data['sunrise'])
         print('temperatures-> ' + ' -> '.join([str(self.data['forecasts'][key]['temp']) for key in self.data['forecasts']]))
         print('precip-> ' + ' -> '.join([str(self.data['forecasts'][key]['precip']) for key in self.data['forecasts']]))
-        print('now: ' + self.data['forecasts']['2025-01-05 00:00']['condition'] + '\nin an hour: ' + self.data['forecasts']['2025-01-05 01:00']['condition'] + '\nin three hours: ' + self.data['forecasts']['2025-01-05 03:00']['condition'] + '\nin twelve hours: ' + self.data['forecasts']['2025-01-05 12:00']['condition'])
+        for key in self.data['forecasts']:
+            if key >= unix_time_now and key < unix_time_now + 3600:
+                print('Current forecast: ' + self.data['forecasts'][key]['condition'])
+            elif key >= unix_time_now + 7200 and key < unix_time_now + 7200 + 3600:
+                print('Forecast in 2 hours: ' + self.data['forecasts'][key]['condition'])
+            elif key >= unix_time_now + 43200 and key < unix_time_now + 43200 + 3600:
+                print('Forecast in 12 hours: ' + self.data['forecasts'][key]['condition'])

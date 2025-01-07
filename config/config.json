@@ -9,15 +9,15 @@
     "METEO": {
         "location": "Monterotondo",
         "unit": "metric",
+        "refresh": 3600
+    },
+    "CLOCK":{
+        "format": "Y/M/D  HH:mm",
         "refresh": 1
     },
     "DISPLAY": {
         "width": 128,
         "height": 64,
         "refresh": 0.1
-    },
-    "CLOCK":{
-        "format": "Y/M/D  HH:mm",
-        "refresh": 1
     }
 }
