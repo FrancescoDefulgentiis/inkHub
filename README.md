@@ -1,36 +1,37 @@
 # InkHub
 
-InkHub è un utile progetto che combina la tecnologia degli e-ink display con la versatilità di un Raspberry Pi per creare un dispositivo elegante e funzionale. Con un'interfaccia semplice costituita da cinque tasti fisici, InkHub consente di visualizzare diverse informazioni utili direttamente sul display.
+InkHub is a useful project that combines e-ink display technology with the versatility of a Raspberry Pi to create a sleek and functional device. With a simple interface consisting of five physical buttons, InkHub allows you to display various useful information directly on the screen.
 
-## Caratteristiche
+## Features
 
-- **Display E-Ink**: Un display ad alta leggibilità, perfetto per ambienti luminosi e per un consumo energetico minimo.
-- **Interfaccia con 5 tasti**: Ogni tasto è associato a una modalità specifica che aggiorna il contenuto visualizzato sul display.
-- **Modalità predefinite**:
-  - **Mezzi di Trasporto**: Visualizza orari, ritardi e informazioni su autobus locali.
-  - **Meteo**: Mostra previsioni meteo aggiornate, temperature, e condizioni atmosferiche.
-  - **Umidità Piante**: Fornisce dati sull'umidità del terreno delle piante, utili per gli appassionati di giardinaggio.
-  - **Modalità Personalizzabili** (x2): Configurabili dall'utente per mostrare informazioni personalizzate, come calendari, promemoria, o altro.
+- **E-Ink Display**: A high-visibility display, perfect for bright environments and minimal power consumption.
+- **5-Button Interface**: Each button is linked to a specific mode that updates the content displayed on the screen.
+- **Default Modes**:
+  - **Transportation**: Displays schedules, delays, and information about local buses.
+  - **Weather**: Shows updated weather forecasts, temperatures, and atmospheric conditions.
+  - **Plant Moisture**: Provides soil moisture data, useful for gardening enthusiasts.
+  - **Clock**: Offers a simple clock interface.
+  - **Custom Modes**: Configurable by the user to display personalized information, such as calendars, reminders, or other content.
 
-## Requisiti
+## Requirements
 
 - **Hardware**:
-  - Raspberry Pi (modello consigliato: Raspberry Pi 3 o successivo)
-  - Display e-ink compatibile (es. Waveshare 7.5" E-Ink Display)
-  - Custodia con 5 tasti fisici(i file di stampa 3D saranno presenti a breve)
-  - Sensore di umidità (opzionale, per la modalità "Umidità Piante")
+  - Raspberry Pi (recommended model: Raspberry Pi Zero 2 W)
+  - Compatible e-ink display and its HAT (e.g., HINK-E075A01 7.5" E-Ink Display)
+  - Case with 5 physical buttons (3D print files will be available soon)
+  - Moisture sensor (optional, for the "Plant Moisture" mode)
   
 - **Software**:
-  - Sistema operativo Raspberry Pi OS
+  - Raspberry Pi OS
   - Python
 
-## Contributi
+## Contributions
 
-Contribuire a InkHub è facile! Puoi:
-- Segnalare problemi aprendo un ticket nella sezione [Issues](https://github.com/tuo-utente/Inkhub/issues).
-- Proporre miglioramenti aprendo una pull request.
-- Condividere idee per nuove modalità o funzionalità.
+InkHub is all about customizability! You can contribute by:
+- **Creating Your Own Modes**: Check out our detailed [Wiki](https://github.com/your-username/Inkhub/wiki) to learn how to design and implement custom modes.
+- **Sharing Your Modes**: Submit your custom modes to the community by opening a pull request.
+- **Reporting Issues or Suggestions**: Open a ticket in the [Issues](https://github.com/your-username/Inkhub/issues) section to share feedback or propose new features.
 
 ---
 
-Facci sapere cosa ne pensi di InkHub e come lo utilizzi! Siamo entusiasti di vedere come la comunità lo personalizza e lo migliora.
+Let us know what you think about InkHub and how you've customized it! We’re excited to see the creative modes and functionalities the community develops.
