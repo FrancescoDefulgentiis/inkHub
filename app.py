@@ -37,7 +37,7 @@ class Hub:
                     "palina": "f13837",
                     "refresh": 30000
                 },
-                "meteo": {
+                "Weather": {
                     "location": "3172768",
                     "unit": "metric",
                     "refresh": 300000

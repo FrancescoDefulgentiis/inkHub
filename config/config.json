@@ -4,9 +4,9 @@
     },
     "COTRAL": {
         "palina": "f13837",
-        "refresh": 1
+        "refresh": 60
     },
-    "METEO": {
+    "WEATHER": {
         "location": "Monterotondo",
         "unit": "metric",
         "refresh": 3600
