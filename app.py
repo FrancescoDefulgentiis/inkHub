@@ -4,8 +4,7 @@ from services import __path__ as services_path  # Get the services folder path
 from services import load_controllers
 from displays import __path__ as displays_path
 from displays import load_displays
-import templates.Controller_template as Controller_template
-import templates.Display_template as Display_template
+from templates import Display_template,Controller_template
 import displays
 import os
 import json
@@ -59,7 +58,7 @@ class Hub:
         self.hub_refresh = config["HUB"]["refresh"]
 
         controller_path = os.path.abspath(services_path[0])
-        self.controllers=load_controllers(controller_path,base_class=Controller_template.Controller_template)
+        self.controllers=load_controllers(controller_path,base_class=Controller_template)
         self.Enum_list=list(self.controllers.keys())
 
         for element in self.Enum_list:
@@ -71,12 +70,12 @@ class Hub:
                 self.controllers[element] = controller_class(config[element.upper()]) 
                 display_path= os.path.abspath(displays_path[0])
                 
-        self.displays=load_displays(display_path,base_class=Display_template.Display_template)
+        self.displays=load_displays(display_path,base_class=Display_template)
 
         for display in self.displays.keys():
             self.displays[display]=self.displays[display]()
 
-        self.displays[None]=Display_template.Display_template()
+        self.displays[None]=Display_template()
 
         self.display_stop_flag=False
         self.display_thread = threading.Thread(target=self.async_main_loop)
@@ -103,13 +102,17 @@ class Hub:
    
     def start_new_thread(self, state):
         for item in self.controllers.values():
+
             item.setStopFlag(True)
+        for item in self.displays.values():
+            if item!=self.displays[self.current_state]:
+                item.reset_data()
         self.controllers[state].start_thread()
 
     def async_main_loop(self):
         while not self.display_stop_flag:  
             with self.lock:
-                self.displays.get(self.current_state,Display_template.Display_template())._write_on_display(self.controllers.get(self.current_state,self).response)
+                self.displays.get(self.current_state,Display_template())._write_on_display(self.controllers.get(self.current_state,self).response)
                 sleep(self.hub_refresh)
 
 def on_closing():

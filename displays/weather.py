@@ -1,4 +1,4 @@
-from templates.Display_template import Display_template
+from templates import Display_template
 import time
 
 class Weather_display(Display_template):

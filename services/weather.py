@@ -3,7 +3,7 @@ import threading
 import os
 from time import sleep
 from dotenv import load_dotenv
-from templates.Controller_template import Controller_template
+from templates import Controller_template
 
 class Weather_controller(Controller_template):
     def __init__(self, args):

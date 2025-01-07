@@ -10,4 +10,5 @@ class Display_template():
             
     def write_on_display(self):
         print(self.data)
-
+    def reset_data(self):
+        self.data=None

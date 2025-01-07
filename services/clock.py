@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from templates.Controller_template import Controller_template
+from templates import Controller_template
 
 class Clock_controller(Controller_template):
     def __init__(self,args):

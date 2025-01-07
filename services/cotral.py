@@ -2,7 +2,7 @@ import requests
 import threading
 import xml.etree.ElementTree as ET
 from time import sleep
-from templates.Controller_template import Controller_template
+from templates import Controller_template
 
 class Cotral_controller(Controller_template):
     def __init__(self, args):
