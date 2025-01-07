@@ -28,9 +28,9 @@ InkHub is a useful project that combines e-ink display technology with the versa
 ## Contributions
 
 InkHub is all about customizability! You can contribute by:
-- **Creating Your Own Modes**: Check out our detailed [Wiki](https://github.com/your-username/Inkhub/wiki) to learn how to design and implement custom modes.
+- **Creating Your Own Modes**: Check out our detailed [Wiki](https://github.com/FrancescoDefulgentiis/inkHub/wiki) to learn how to design and implement custom modes.
 - **Sharing Your Modes**: Submit your custom modes to the community by opening a pull request.
-- **Reporting Issues or Suggestions**: Open a ticket in the [Issues](https://github.com/your-username/Inkhub/issues) section to share feedback or propose new features.
+- **Reporting Issues or Suggestions**: Open a ticket in the [Issues](https://github.com/FrancescoDefulgentiis/inkHub/issues) section to share feedback or propose new features.
 
 ---
 
