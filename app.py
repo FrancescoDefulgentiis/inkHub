@@ -6,6 +6,7 @@ from displays import __path__ as displays_path
 from displays import load_displays
 from templates import Display_template,Controller_template
 import displays
+import subprocess
 import os
 import json
 from time import sleep
@@ -81,6 +82,27 @@ class Hub:
         self.display_thread = threading.Thread(target=self.async_main_loop)
         self.display_thread.start()
 
+    def main_loop(self,terminal_path):
+  # Redirect input and output to another terminal
+        with open(terminal_path, 'w+') as terminal:
+            original_stdout = os.dup(1)
+            original_stdin = os.dup(0)
+            os.dup2(terminal.fileno(), 1)
+            os.dup2(terminal.fileno(), 0)
+            try:
+                while not self.display_stop_flag:
+                    os.system('cls' if os.name == 'nt' else 'clear')
+                    print("SELEZIONARE MODALITA':\n 0 CLOCK \n 1 COTRAL \n 2 METEO \n 4 Esci")
+                    state = int(input())
+                    if state == 4:
+                        self.StopAllThreads()
+                    else:
+                        self._command(state)
+            finally:
+                os.dup2(original_stdout, 1)
+                os.dup2(original_stdin, 0)
+                os.close(original_stdout)
+                os.close(original_stdin)
 
     def setStopFlag(self, status):
         self.display_stop_flag = status
@@ -115,30 +137,9 @@ class Hub:
                 self.displays.get(self.current_state,Display_template())._write_on_display(self.controllers.get(self.current_state,self).response)
                 sleep(self.hub_refresh)
 
-def on_closing():
-
-    hub.StopAllThreads()
-    root.quit()  
-    root.destroy()  
-
 if __name__ == "__main__":
+   
     hub = Hub()
-
-    root = tk.Tk()
-    root.title("Home Hub")
-    root.geometry("400x60")
-
-    root.protocol("WM_DELETE_WINDOW", on_closing)
-
-    button_frame = tk.Frame(root)
-    button_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
-
-    for i in range(len(hub.Enum_list)):
-        btn = tk.Button(button_frame, text=f"{hub.Enum_list[i]}", command=hub.create_command(i))
-        btn.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
-
-    # Start the GUI loop
-    root.mainloop()
-
-    print("Exiting...")
+    terminal_path = '/dev/pts/1'  # Replace with the correct terminal path
+    hub.main_loop(terminal_path)
 
