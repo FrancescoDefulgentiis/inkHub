@@ -80,8 +80,7 @@ class Hub:
         self.display_stop_flag=False
         self.display_thread = threading.Thread(target=self.async_main_loop)
         self.display_thread.start()
-
-
+        
     def setStopFlag(self, status):
         self.display_stop_flag = status
 
