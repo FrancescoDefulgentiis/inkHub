@@ -1,4 +1,4 @@
-import time
+from time import sleep
 from datetime import datetime
 from templates import Controller_template
 
@@ -13,4 +13,4 @@ class Clock_controller(Controller_template):
     def thread_function(self):
         while not self.stop_thread:
             self.response = datetime.now().strftime("%d/%m/%Y  %H:%M")
-            time.sleep(self.refresh)    
+            sleep(self.refresh)    

@@ -11,6 +11,7 @@ class Controller_template:
     def thread_function(self):
         self.response = "No thread function defined"
         while not self.stop_thread:
+            # Insert your code here to retrieve data and update the self.response
             pass
 
     def start_thread(self,):

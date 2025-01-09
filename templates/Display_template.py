@@ -9,6 +9,8 @@ class Display_template():
             self.write_on_display()
             
     def write_on_display(self):
+        # Insert your code here to write the data on the display
         print(self.data)
+
     def reset_data(self):
         self.data=None
