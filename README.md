@@ -33,5 +33,9 @@ InkHub is all about customizability! You can contribute by:
 - **Reporting Issues or Suggestions**: Open a ticket in the [Issues](https://github.com/FrancescoDefulgentiis/inkHub/issues) section to share feedback or propose new features.
 
 ---
+## License
+InkHub is licensed under the GNU General Public License v3.0.
+
+You are free to use, modify, and distribute the software, provided that all copies and modifications are licensed under the same terms.
 
 Let us know what you think about InkHub and how you've customized it! We’re excited to see the creative modes and functionalities the community develops.
