@@ -82,7 +82,9 @@ class Hub:
         self.display_thread.start()
 
     def main_loop(self,terminal_path):
-        print("SELEZIONARE MODALITA':\n 0 CLOCK \n 1 COTRAL \n 2 METEO \n 4 Esci")
+        print("\nSELEZIONARE MODALITA:")
+        for i,element in enumerate(self.Enum_list):
+                print(f"{i}:{element}")
         state = int(input())
         if state == 4:
             self.StopAllThreads()
