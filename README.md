@@ -18,7 +18,7 @@ InkHub is a useful project that combines e-ink display technology with the versa
 - **Hardware**:
   - Raspberry Pi (recommended model: Raspberry Pi Zero 2 W)
   - Compatible e-ink display and its HAT (e.g., HINK-E075A01 7.5" E-Ink Display)
-  - Case with 5 physical buttons (3D print files will be available soon)
+  - Case with 5 physical buttons (3D print files available)
   - Moisture sensor (optional, for the "Plant Moisture" mode)
   
 - **Software**:
