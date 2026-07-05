@@ -1,0 +1,17 @@
+# venv / bytecode
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Local runtime
+*.log
+
+# Vendored Waveshare driver — pulled in on device, not committed here
+waveshare_epd/
