@@ -1,0 +1,18 @@
+{
+  "panel_driver": "epd7in5_V2",
+  "active_module": "clock",
+  "refresh_interval": 60,
+  "rotation": 0,
+  "log_level": "INFO",
+  "buttons": {
+    "gpio_pins": [5, 6, 13, 19],
+    "pull_up": true,
+    "bounce_time_ms": 50
+  },
+  "modules": {
+    "clock": {
+      "time_format": "%H:%M",
+      "date_format": "%A, %d %B %Y"
+    }
+  }
+}
