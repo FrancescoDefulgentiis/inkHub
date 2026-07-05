@@ -41,6 +41,8 @@ class InkHubApp:
         module_cfg = self._config.get("modules", {}).get(selected_module, {})
         self._module = create_module(selected_module, module_cfg, self._display.size)
         _log.info("Active module: %s", selected_module)
+        self._module_lock = threading.RLock()
+        self._module_started = False
 
         self._refresh_interval = max(1, int(self._config.get("refresh_interval", 60)))
         self._wake = threading.Event()
@@ -55,9 +57,17 @@ class InkHubApp:
         )
 
     # ------------------------------------------------------------------ #
+    @property
+    def active_module_name(self) -> str:
+        """Return the currently active module name."""
+        with self._module_lock:
+            return self._module.name
+
     def _on_button(self, index: int) -> None:
         """Forward a button press to the active module and maybe refresh."""
-        if self._module.on_button(index):
+        with self._module_lock:
+            refresh = self._module.on_button(index)
+        if refresh:
             _log.debug("Module requested immediate refresh")
             self._wake.set()
 
@@ -65,21 +75,52 @@ class InkHubApp:
         """Render one frame from the active module and push it to the panel."""
         image = self._display.new_frame()
         draw = ImageDraw.Draw(image)
-        try:
-            self._module.render(image, draw)
-        except Exception:
-            _log.exception("Module %r render failed", self._module.name)
-            return
-        t0 = time.monotonic()
-        self._display.show(image)
+        with self._module_lock:
+            module = self._module
+            try:
+                module.render(image, draw)
+            except Exception:
+                _log.exception("Module %r render failed", module.name)
+                return
+            t0 = time.monotonic()
+            self._display.show(image)
         _log.debug("Full refresh in %.2fs", time.monotonic() - t0)
+
+    def switch_module(self, module_name: str) -> bool:
+        """Switch the running module and request an immediate refresh."""
+        with self._module_lock:
+            current_module = self._module
+            if current_module.name == module_name:
+                return False
+
+            module_cfg = self._config.get("modules", {}).get(module_name, {})
+            new_module = create_module(module_name, module_cfg, self._display.size)
+            if self._module_started:
+                new_module.start()
+
+                try:
+                    current_module.stop()
+                except Exception:
+                    _log.exception(
+                        "Module %r stop() raised during switch",
+                        current_module.name,
+                    )
+
+            self._module = new_module
+            self._config["active_module"] = module_name
+
+        _log.info("Switched active module to %s", module_name)
+        self._wake.set()
+        return True
 
     def run(self) -> None:
         """Main loop. Blocks until :meth:`stop` (or SIGINT/SIGTERM)."""
         for sig in (signal.SIGINT, signal.SIGTERM):
             signal.signal(sig, lambda *_: self.stop())
 
-        self._module.start()
+        with self._module_lock:
+            self._module.start()
+            self._module_started = True
         _log.info(
             "InkHub running (refresh every %ds). Press Ctrl+C to stop.",
             self._refresh_interval,
@@ -102,7 +143,10 @@ class InkHubApp:
 
     def _shutdown(self) -> None:
         try:
-            self._module.stop()
+            with self._module_lock:
+                if self._module_started:
+                    self._module.stop()
+                    self._module_started = False
         except Exception:
             _log.exception("Module stop() raised")
         self._buttons.close()

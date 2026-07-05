@@ -26,18 +26,14 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     from .app import InkHubApp
-    from .launcher_menu import prompt_for_selection
+    from .launcher_menu import start_interactive_menu
 
     try:
-        module_name = None
-        use_menu = not args.no_menu
-        if use_menu and sys.stdin.isatty() and sys.stdout.isatty():
-            selection = prompt_for_selection(args.config)
-            if selection.action == "quit":
-                return 0
-            module_name = selection.module_name
+        app = InkHubApp(args.config)
+        if not args.no_menu and sys.stdin.isatty() and sys.stdout.isatty():
+            start_interactive_menu(app, args.config)
 
-        InkHubApp(args.config, module_name=module_name).run()
+        app.run()
     except KeyboardInterrupt:
         return 0
     except Exception:
