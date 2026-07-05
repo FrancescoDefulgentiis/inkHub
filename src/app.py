@@ -22,7 +22,11 @@ _log = logging.getLogger(__name__)
 class InkHubApp:
     """Owns the display, the buttons and the currently active module."""
 
-    def __init__(self, config_path: str | Path = "config.json") -> None:
+    def __init__(
+        self,
+        config_path: str | Path = "config.json",
+        module_name: str | None = None,
+    ) -> None:
         self._config: dict[str, Any] = load_config(config_path)
 
         logging.getLogger().setLevel(self._config.get("log_level", "INFO"))
@@ -33,10 +37,10 @@ class InkHubApp:
         )
 
         discover_modules()
-        module_name: str = self._config["active_module"]
-        module_cfg = self._config.get("modules", {}).get(module_name, {})
-        self._module = create_module(module_name, module_cfg, self._display.size)
-        _log.info("Active module: %s", module_name)
+        selected_module = module_name or self._config["active_module"]
+        module_cfg = self._config.get("modules", {}).get(selected_module, {})
+        self._module = create_module(selected_module, module_cfg, self._display.size)
+        _log.info("Active module: %s", selected_module)
 
         self._refresh_interval = max(1, int(self._config.get("refresh_interval", 60)))
         self._wake = threading.Event()
