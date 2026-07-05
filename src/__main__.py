@@ -6,9 +6,6 @@ import argparse
 import logging
 import sys
 
-from .app import InkHubApp
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="inkhub", description="Modular e-ink dashboard")
     parser.add_argument(
@@ -21,6 +18,8 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.INFO,
         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
     )
+
+    from .app import InkHubApp
 
     try:
         InkHubApp(args.config).run()
