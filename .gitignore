@@ -1,7 +1,0 @@
-
-#ignore the file containing api keys
-.env
-
-# Ignore compiled Python files
-*.pyc
-__pycache__/

@@ -1,4 +1,6 @@
-pandas
-tk
-requests
-python-dotenv
+Pillow>=10.0
+spidev>=3.6
+RPi.GPIO>=0.7.1
+gpiozero>=2.0
+lgpio>=0.2.2.0
+requests>=2.31
