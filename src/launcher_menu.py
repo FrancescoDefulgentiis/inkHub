@@ -1,5 +1,3 @@
-"""Interactive terminal launcher menu."""
-
 from __future__ import annotations
 
 import logging
@@ -10,7 +8,6 @@ import threading
 from typing import Any, Protocol
 
 from .config import load_config
-from .registry import available_modules, discover_modules
 
 _log = logging.getLogger(__name__)
 
@@ -21,7 +18,10 @@ class AppController(Protocol):
     @property
     def active_module_name(self) -> str: ...
 
-    def switch_module(self, module_name: str) -> bool: ...
+    @property
+    def available_switch_modules(self) -> tuple[str, ...]: ...
+
+    def press_button(self, index: int) -> str: ...
 
     def stop(self) -> None: ...
 
@@ -41,12 +41,10 @@ def start_interactive_menu(app: AppController, config_path: str | Path) -> threa
 
 def _menu_loop(app: AppController, config_path: Path, config: dict[str, Any]) -> None:
     print()
-    print("InkHub terminal controls are active. Use 1-5 to switch modules, q/Esc to quit.")
+    print("InkHub terminal controls are active. Use 1-4 to switch modules, 5 for action, q/Esc to quit.")
 
     while True:
-        discover_modules()
-        discovered = available_modules()
-        slots = _module_slots(config, discovered)
+        slots = list(app.available_switch_modules)
         _print_menu(config, config_path, slots, app.active_module_name)
         key = _read_key().lower()
         print()
@@ -57,23 +55,13 @@ def _menu_loop(app: AppController, config_path: Path, config: dict[str, Any]) ->
             return
 
         if key in {"1", "2", "3", "4", "5"}:
-            slot_index = int(key) - 1
-            if slot_index < len(slots):
-                module_name = slots[slot_index]
-                try:
-                    changed = app.switch_module(module_name)
-                except Exception:
-                    _log.exception("Failed to switch to module %r", module_name)
-                    print(f"Failed to switch to '{module_name}'. Check the logs for details.")
-                else:
-                    if changed:
-                        print(f"Switched to module '{module_name}'.")
-                    else:
-                        print(f"Module '{module_name}' is already active.")
-                continue
-
-            print(f"Slot {key} is not assigned yet.")
-            _wait_for_keypress()
+            try:
+                message = app.press_button(int(key) - 1)
+            except Exception:
+                _log.exception("Failed to handle virtual button %s", key)
+                print(f"Failed to handle button {key}. Check the logs for details.")
+            else:
+                print(message)
             continue
 
         if key == "c":
@@ -82,7 +70,7 @@ def _menu_loop(app: AppController, config_path: Path, config: dict[str, Any]) ->
             continue
 
         if key == "d":
-            _print_diagnostics(config, config_path, discovered, app.active_module_name)
+            _print_diagnostics(config, config_path, slots, app.active_module_name)
             _wait_for_keypress()
             continue
 
@@ -93,22 +81,6 @@ def _menu_loop(app: AppController, config_path: Path, config: dict[str, Any]) ->
 
         print(f"Unsupported key: {key!r}")
         _wait_for_keypress()
-
-
-def _module_slots(config: dict[str, Any], discovered: list[str]) -> list[str]:
-    active_module = str(config.get("active_module", "")).strip()
-    configured_modules = [
-        str(name).strip() for name in config.get("modules", {}) if str(name).strip()
-    ]
-
-    slots: list[str] = []
-    for module_name in [active_module, *configured_modules, *discovered]:
-        if module_name and module_name in discovered and module_name not in slots:
-            slots.append(module_name)
-        if len(slots) == 5:
-            break
-    return slots
-
 
 def _print_menu(
     config: dict[str, Any],
@@ -123,14 +95,15 @@ def _print_menu(
     print(f"Running  : {active_module_name}")
     print(f"Default  : {config.get('active_module', '<unset>')}")
     print("-" * 64)
-    print("Modules")
-    for slot in range(5):
+    print("Switch buttons")
+    for slot in range(4):
         if slot < len(slots):
             label = slots[slot]
             suffix = " (running)" if label == active_module_name else ""
             print(f"  {slot + 1}. {label}{suffix}")
         else:
             print(f"  {slot + 1}. [empty slot]")
+    print("  5. Action button for the running module")
     print("-" * 64)
     print("Extra actions")
     print("  C. Show config summary")
@@ -147,7 +120,6 @@ def _print_config_summary(
     active_module_name: str,
 ) -> None:
     module_names = sorted(str(name) for name in config.get("modules", {}))
-    button_cfg = config.get("buttons", {})
     print()
     print("Config summary")
     print("-" * 64)
@@ -156,18 +128,15 @@ def _print_config_summary(
     print(f"Running module   : {active_module_name}")
     print(f"Default module   : {config.get('active_module', '<unset>')}")
     print(f"Configured       : {', '.join(module_names) if module_names else '<none>'}")
-    print(f"Refresh interval : {config.get('refresh_interval', '<unset>')}s")
-    print(f"Rotation         : {config.get('rotation', '<unset>')}")
     print(f"Log level        : {config.get('log_level', '<unset>')}")
-    print(f"GPIO pins        : {button_cfg.get('gpio_pins', [])}")
-    print(f"Pull-up          : {button_cfg.get('pull_up', True)}")
-    print(f"Debounce         : {button_cfg.get('bounce_time_ms', 50)}ms")
+    print("Control mode     : terminal menu only")
+    print("Button roles     : 1-4 switch modules, 5 triggers the running module")
 
 
 def _print_diagnostics(
     config: dict[str, Any],
     config_path: Path,
-    discovered: list[str],
+    switch_modules: list[str],
     active_module_name: str,
 ) -> None:
     configured_modules = sorted(str(name) for name in config.get("modules", {}))
@@ -180,8 +149,8 @@ def _print_diagnostics(
     print(f"Config exists    : {config_path.resolve().is_file()}")
     print(f"Running module   : {active_module_name}")
     print(f"Configured mods  : {configured_modules if configured_modules else []}")
-    print(f"Discovered mods  : {discovered if discovered else []}")
-    print(f"Running available: {active_module_name in discovered}")
+    print(f"Switch modules   : {switch_modules if switch_modules else []}")
+    print(f"Running slotted  : {active_module_name in switch_modules}")
     print(f"TTY stdin/stdout : {sys.stdin.isatty()}/{sys.stdout.isatty()}")
     print(f"OS mode          : {os.name}")
 
@@ -190,7 +159,8 @@ def _print_help() -> None:
     print()
     print("Launcher help")
     print("-" * 64)
-    print("1-5 : switch to the module shown in that slot")
+    print("1-4 : switch to the module shown in that slot")
+    print("5   : send the dedicated action button to the running module")
     print("C   : print the config summary")
     print("D   : print diagnostics useful while wiring modules and hardware")
     print("H   : show this help")

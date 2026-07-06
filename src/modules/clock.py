@@ -7,7 +7,7 @@ Copy this file to build your own module — the two things that matter are the
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -15,20 +15,6 @@ from ..module import Module
 from ..registry import register_module
 
 _log = logging.getLogger(__name__)
-
-
-def _load_font(size: int) -> ImageFont.ImageFont:
-    """Try a common DejaVu path, fall back to Pillow's bundled default."""
-    for path in (
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ):
-        try:
-            return ImageFont.truetype(path, size)
-        except OSError:
-            continue
-    _log.warning("DejaVu font not found, using Pillow default (small)")
-    return ImageFont.load_default()
 
 
 @register_module("clock")
@@ -39,15 +25,22 @@ class ClockModule(Module):
         super().__init__(config, size)
         self._time_format: str = self.config.get("time_format", "%H:%M")
         self._date_format: str = self.config.get("date_format", "%A, %d %B %Y")
-        # Scale font relative to panel height so it works on any Waveshare size.
         self._time_font = _load_font(max(48, self.height // 3))
         self._date_font = _load_font(max(18, self.height // 12))
 
-    def render(self, image: Image.Image, draw: ImageDraw.ImageDraw) -> None:
-        """Draw the current time and date, centred on the panel."""
+    def next_update_delay(self) -> float:
+        """Refresh exactly when the next minute begins."""
+        now = datetime.now()
+        next_minute = now.replace(second=0, microsecond=0) + timedelta(minutes=1)
+        return max(0.0, (next_minute - now).total_seconds())
+
+    def render(self) -> Image.Image:
+        """Build the current time screen and return it."""
         now = datetime.now()
         time_text = now.strftime(self._time_format)
         date_text = now.strftime(self._date_format)
+        image = self.new_image()
+        draw = ImageDraw.Draw(image)
 
         tw, th = _text_size(draw, time_text, self._time_font)
         dw, dh = _text_size(draw, date_text, self._date_font)
@@ -62,7 +55,20 @@ class ClockModule(Module):
             font=self._date_font,
             fill=0,
         )
+        return image
 
+def _load_font(size: int) -> ImageFont.ImageFont:
+    """Try a common DejaVu path, fall back to Pillow's bundled default."""
+    for path in (
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ):
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            continue
+    _log.warning("DejaVu font not found, using Pillow default (small)")
+    return ImageFont.load_default()
 
 def _text_size(
     draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont

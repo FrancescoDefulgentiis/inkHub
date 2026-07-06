@@ -1,11 +1,8 @@
-"""``python -m inkhub`` entry point."""
-
 from __future__ import annotations
 
 import argparse
 import logging
 import sys
-
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="inkhub", description="Modular e-ink dashboard")

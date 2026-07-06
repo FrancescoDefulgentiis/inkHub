@@ -1,5 +1,3 @@
-"""Repository root launcher for `python run.py`."""
-
 from __future__ import annotations
 
 from src.__main__ import main

@@ -1,26 +1,23 @@
-"""Main InkHub coordinator: config -> display -> module -> refresh loop."""
+"""Main InkHub coordinator: config -> display -> module -> event-driven updates."""
 
 from __future__ import annotations
 
 import logging
+import queue
 import signal
 import threading
-import time
 from pathlib import Path
 from typing import Any
 
-from PIL import ImageDraw
-
-from .buttons import ButtonPanel
 from .config import load_config
 from .display import Display
-from .registry import create_module, discover_modules
+from .registry import available_modules, create_module, discover_modules
 
 _log = logging.getLogger(__name__)
 
 
 class InkHubApp:
-    """Owns the display, the buttons and the currently active module."""
+    """Owns the display and the currently active module."""
 
     def __init__(
         self,
@@ -33,7 +30,6 @@ class InkHubApp:
 
         self._display = Display(
             driver_name=self._config["panel_driver"],
-            rotation=int(self._config.get("rotation", 0)),
         )
 
         discover_modules()
@@ -41,20 +37,11 @@ class InkHubApp:
         module_cfg = self._config.get("modules", {}).get(selected_module, {})
         self._module = create_module(selected_module, module_cfg, self._display.size)
         _log.info("Active module: %s", selected_module)
+        self._switch_modules = self._resolve_switch_modules()
         self._module_lock = threading.RLock()
         self._module_started = False
-
-        self._refresh_interval = max(1, int(self._config.get("refresh_interval", 60)))
         self._wake = threading.Event()
         self._stop = threading.Event()
-
-        btn_cfg = self._config.get("buttons", {})
-        self._buttons = ButtonPanel(
-            pins=btn_cfg.get("gpio_pins", [5, 6, 13, 19]),
-            on_press=self._on_button,
-            pull_up=bool(btn_cfg.get("pull_up", True)),
-            bounce_time_ms=int(btn_cfg.get("bounce_time_ms", 50)),
-        )
 
     # ------------------------------------------------------------------ #
     @property
@@ -63,28 +50,56 @@ class InkHubApp:
         with self._module_lock:
             return self._module.name
 
-    def _on_button(self, index: int) -> None:
-        """Forward a button press to the active module and maybe refresh."""
-        with self._module_lock:
-            refresh = self._module.on_button(index)
-        if refresh:
-            _log.debug("Module requested immediate refresh")
-            self._wake.set()
+    @property
+    def available_switch_modules(self) -> tuple[str, ...]:
+        """Return the module names bound to switch buttons 1-4."""
+        return self._switch_modules
 
-    def _render_and_show(self) -> None:
-        """Render one frame from the active module and push it to the panel."""
-        image = self._display.new_frame()
-        draw = ImageDraw.Draw(image)
+    def _resolve_switch_modules(self) -> tuple[str, ...]:
+        active_module = str(self._config.get("active_module", "")).strip()
+        configured_modules = [
+            str(name).strip() for name in self._config.get("modules", {}) if str(name).strip()
+        ]
+        discovered_modules = set(available_modules())
+        slots: list[str] = []
+        for module_name in [active_module, *configured_modules, *available_modules()]:
+            if module_name and module_name in discovered_modules and module_name not in slots:
+                slots.append(module_name)
+            if len(slots) == 4:
+                break
+        return tuple(slots)
+
+    def press_button(self, index: int) -> str:
+        """Handle a virtual button press from the terminal menu."""
+        if index < 4 and index < len(self._switch_modules):
+            module_name = self._switch_modules[index]
+            changed = self.switch_module(module_name)
+            if changed:
+                return f"Switched to module '{module_name}'."
+            return f"Module '{module_name}' is already active."
+
+        if index < 4:
+            message = f"No module is assigned to button {index + 1}."
+            _log.warning(message)
+            return message
+
+        if index == 4:
+            self.press_action_button()
+            return f"Action button sent to '{self.active_module_name}'."
+
+        message = f"Ignoring unexpected button index {index}."
+        _log.warning(message)
+        return message
+
+    def _consume_and_show(self) -> None:
+        """Consume one image from the active module's queue and push it to the panel."""
         with self._module_lock:
             module = self._module
-            try:
-                module.render(image, draw)
-            except Exception:
-                _log.exception("Module %r render failed", module.name)
-                return
-            t0 = time.monotonic()
-            self._display.show(image)
-        _log.debug("Full refresh in %.2fs", time.monotonic() - t0)
+        try:
+            image = module.image_queue.get_nowait()
+        except queue.Empty:
+            return
+        self._display.show(image)
 
     def switch_module(self, module_name: str) -> bool:
         """Switch the running module and request an immediate refresh."""
@@ -113,24 +128,25 @@ class InkHubApp:
         self._wake.set()
         return True
 
+    def press_action_button(self) -> None:
+        """Forward the dedicated action button to the active module."""
+        with self._module_lock:
+            self._module.on_action_button()
+        self._wake.set()
+
     def run(self) -> None:
-        """Main loop. Blocks until :meth:`stop` (or SIGINT/SIGTERM)."""
+        """Main loop."""
         for sig in (signal.SIGINT, signal.SIGTERM):
             signal.signal(sig, lambda *_: self.stop())
 
         with self._module_lock:
             self._module.start()
             self._module_started = True
-        _log.info(
-            "InkHub running (refresh every %ds). Press Ctrl+C to stop.",
-            self._refresh_interval,
-        )
+        _log.info("InkHub running with module-driven updates. Press Ctrl+C to stop.")
         try:
             while not self._stop.is_set():
-                self._render_and_show()
-                # Rate-limit: never refresh faster than `refresh_interval`
-                # unless a button press explicitly wakes us up.
-                self._wake.wait(timeout=self._refresh_interval)
+                self._consume_and_show()
+                self._wake.wait(timeout=0.05)
                 self._wake.clear()
         finally:
             self._shutdown()
@@ -149,6 +165,5 @@ class InkHubApp:
                     self._module_started = False
         except Exception:
             _log.exception("Module stop() raised")
-        self._buttons.close()
         self._display.sleep()
         _log.info("InkHub stopped")
