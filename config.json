@@ -7,6 +7,12 @@
     "clock": {
       "time_format": "%H:%M",
       "date_format": "%A, %d %B %Y"
+    },
+    "weather": {
+      "town": "Monterotondo",
+      "country": "Italy",
+      "temperature_unit": "celsius",
+      "wind_speed_unit": "kmh"
     }
   }
 }
