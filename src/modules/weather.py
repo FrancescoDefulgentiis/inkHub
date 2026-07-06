@@ -358,7 +358,7 @@ class WeatherModule(Module):
         w, h = self.width, self.height
         margin = max(12, h // 40)
 
-        title = f"7-day forecast · {data.location.name}"
+        title = data.location.name
         subtitle = data.fetched_at.strftime("Updated %a %d %b %H:%M")
         _, title_h = _text_size(draw, title, self._font_title)
         _, sub_h = _text_size(draw, subtitle, self._font_small)

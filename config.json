@@ -13,6 +13,9 @@
       "country": "Italy",
       "temperature_unit": "celsius",
       "wind_speed_unit": "kmh"
+    },
+    "formula1": {
+      "view": "weekend"
     }
   }
 }
