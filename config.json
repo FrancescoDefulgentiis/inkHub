@@ -1,5 +1,5 @@
 {
-  "panel_driver": "epd7in5_V2",
+  "panel_driver": "epd7in5",
   "active_module": "clock",
   "rotation": 0,
   "log_level": "INFO",
