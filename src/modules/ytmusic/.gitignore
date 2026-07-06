@@ -1,0 +1,4 @@
+# Credentials for the YouTube Music module. Never commit these — they are
+# equivalent to your logged-in browser session.
+browser.json
+oauth.json
