@@ -111,6 +111,11 @@ _DEFAULT_POLL_INTERVAL = 5.0
 _DEFAULT_QUEUE_SIZE = 5
 
 
+def _ts() -> str:
+    """Consistent local timestamp for module log lines."""
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
 # --------------------------------------------------------------------------- #
 # Data containers                                                              #
 # --------------------------------------------------------------------------- #
@@ -656,6 +661,7 @@ class YouTubeMusicModule(Module):
             self._store_state(error=self._yt_error)
             return
         try:
+            _log.info("[%s] YT Music fetch: history", _ts())
             history = client.get_history()
         except Exception as exc:
             _log.exception("YT Music history fetch failed")
@@ -680,6 +686,24 @@ class YouTubeMusicModule(Module):
                 and self._state.current.video_id == current.video_id
                 and self._state.queue
             )
+            previous_current = self._state.current
+
+        if previous_current is None:
+            _log.info(
+                "[%s] YT Music current song initialized: %s (%s)",
+                _ts(),
+                current.title,
+                current.video_id,
+            )
+        elif previous_current.video_id != current.video_id:
+            _log.info(
+                "[%s] YT Music song change detected: '%s' (%s) -> '%s' (%s)",
+                _ts(),
+                previous_current.title,
+                previous_current.video_id,
+                current.title,
+                current.video_id,
+            )
 
         queue: list[Track] = []
         if same_current:
@@ -687,6 +711,11 @@ class YouTubeMusicModule(Module):
                 queue = list(self._state.queue)
         else:
             try:
+                _log.info(
+                    "[%s] YT Music fetch: watch playlist for videoId=%s",
+                    _ts(),
+                    current.video_id,
+                )
                 watch = client.get_watch_playlist(
                     videoId=current.video_id, limit=self._queue_size + 3,
                 )
@@ -728,6 +757,12 @@ class YouTubeMusicModule(Module):
                 self._last_pushed_key = key
 
         if changed:
+            _log.info(
+                "[%s] YT Music push: render wake requested (current=%s, queue=%d)",
+                _ts(),
+                self._state.current.video_id if self._state.current else "none",
+                len(self._state.queue),
+            )
             self._render_wake.set()
 
     def _ensure_client(self) -> Any | None:
