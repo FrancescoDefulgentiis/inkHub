@@ -29,47 +29,65 @@ class PhotoGallery(Module):
 
     def __init__(self, config: Mapping[str, Any], size: tuple[int, int]) -> None:
         super().__init__(config, size)
+        _log.info(
+            "Initialising PhotoGallery (size=%dx%d, change_rate=%ss, display_mode=%s)",
+            size[0],
+            size[1],
+            (config or {}).get("change_rate", DEFAULT_CHANGE_RATE),
+            (config or {}).get("display_mode", DEFAULT_DISPLAY_MODE),
+        )
         self.gallery_dir = GALLERY_DIR
         self._setup_gallery_dir()
-        
+
         self._current_photo_index = 0
         self._photos: list[Path] = []
         self._last_rotation_time = time.time()
         self._lock = threading.Lock()
-        
+
         self._load_photos()
         self._web_server: Any = None
 
     def start(self) -> None:
         """Start the photo gallery module and web server."""
+        _log.info("Starting PhotoGallery module")
         super().start()
-        
+
         # Start the web server if enabled
         web_server_config = self.config.get("web_server", {})
-        if web_server_config.get("enabled", True):
-            try:
-                from .launcher import start_gallery_web_server
-                
-                host = web_server_config.get("host", "0.0.0.0")
-                port = web_server_config.get("port", 5000)
-                
-                self._web_server = start_gallery_web_server(self, host, port)
-                _log.info("Photo Gallery web server started on %s:%d", host, port)
-            except Exception as e:
-                _log.error("Failed to start Photo Gallery web server: %s", e)
+        if not web_server_config.get("enabled", True):
+            _log.info("Photo Gallery web server disabled via config")
+            return
+
+        try:
+            from .launcher import start_gallery_web_server
+
+            host = web_server_config.get("host", "0.0.0.0")
+            port = web_server_config.get("port", 5000)
+
+            _log.info(
+                "Launching Photo Gallery web server on %s:%d (%d photos in gallery)",
+                host,
+                port,
+                len(self._photos),
+            )
+            self._web_server = start_gallery_web_server(self, host, port)
+        except Exception as e:
+            _log.exception("Failed to start Photo Gallery web server: %s", e)
 
     def stop(self) -> None:
         """Stop the photo gallery module and web server."""
+        _log.info("Stopping PhotoGallery module")
         if self._web_server:
             try:
                 self._web_server.stop()
             except Exception as e:
-                _log.error("Failed to stop web server: %s", e)
+                _log.exception("Failed to stop web server: %s", e)
         super().stop()
 
     def _setup_gallery_dir(self) -> None:
         """Create gallery directory if it doesn't exist."""
         self.gallery_dir.mkdir(exist_ok=True)
+        _log.debug("Gallery directory ready at %s", self.gallery_dir.resolve())
 
     def _get_global_config(self) -> dict[str, Any]:
         """Load the global config.json file."""
@@ -121,7 +139,13 @@ class PhotoGallery(Module):
                 p for p in self.gallery_dir.iterdir()
                 if p.is_file() and p.suffix.lower() in extensions
             ])
-            _log.info("Loaded %d photos", len(self._photos))
+            _log.info(
+                "Loaded %d photos from %s",
+                len(self._photos),
+                self.gallery_dir.resolve(),
+            )
+            for photo in self._photos:
+                _log.debug("  - %s", photo.name)
 
     def _get_current_photo_path(self) -> Path | None:
         """Get the path of the current photo to display."""
@@ -136,29 +160,49 @@ class PhotoGallery(Module):
             if not self._photos:
                 return
             self._current_photo_index = (self._current_photo_index + 1) % len(self._photos)
+            _log.debug(
+                "Rotated to photo %d/%d: %s",
+                self._current_photo_index + 1,
+                len(self._photos),
+                self._photos[self._current_photo_index].name,
+            )
 
     def _load_and_convert_photo(self, photo_path: Path) -> Image.Image | None:
         """Load a photo and convert it to 1-bit B&W for the e-ink display."""
         try:
             # Load image
             img = Image.open(photo_path)
-            
+            original_mode = img.mode
+            original_size = img.size
+
             # Convert to RGB if needed (handles RGBA, etc.)
             if img.mode != "RGB":
                 img = img.convert("RGB")
-            
+
             # Get display mode for this photo (or use default from config)
             filename = photo_path.name
             photo_modes = self._get_photo_modes()
-            display_mode = photo_modes.get(filename, self.config.get("display_mode", DEFAULT_DISPLAY_MODE))
+            display_mode = photo_modes.get(
+                filename,
+                self.config.get("display_mode", DEFAULT_DISPLAY_MODE),
+            )
             img = self._apply_display_mode(img, display_mode)
-            
+
             # Convert to 1-bit (black and white) for e-ink
             img = img.convert("1")
-            
+
+            _log.debug(
+                "Rendered photo %s (%s %s -> %s %s, mode=%s)",
+                photo_path.name,
+                original_mode,
+                original_size,
+                img.mode,
+                img.size,
+                display_mode,
+            )
             return img
         except Exception as e:
-            _log.error("Failed to load photo %s: %s", photo_path, e)
+            _log.exception("Failed to load photo %s: %s", photo_path, e)
             return None
 
     def _apply_display_mode(self, img: Image.Image, mode: str) -> Image.Image:
@@ -204,14 +248,23 @@ class PhotoGallery(Module):
         if current_time - self._last_rotation_time >= change_rate:
             self._rotate_to_next_photo()
             self._last_rotation_time = current_time
-        
+
         # Load and display current photo
         photo_path = self._get_current_photo_path()
         if photo_path:
             photo_image = self._load_and_convert_photo(photo_path)
             if photo_image:
                 return photo_image
-        
+            _log.warning(
+                "render(): failed to convert %s, falling back to placeholder",
+                photo_path,
+            )
+        else:
+            _log.info(
+                "render(): no photos available in %s, showing placeholder",
+                self.gallery_dir.resolve(),
+            )
+
         # Placeholder: "No photos" message
         placeholder = self.new_image(color=255)
         try:
@@ -220,9 +273,9 @@ class PhotoGallery(Module):
             # Try to use a default font, fall back to default if not available
             try:
                 font = ImageFont.load_default()
-            except:
+            except Exception:
                 font = ImageFont.load_default()
-            
+
             text = "No photos in gallery"
             bbox = draw.textbbox((0, 0), text, font=font)
             text_width = bbox[2] - bbox[0]
@@ -232,7 +285,7 @@ class PhotoGallery(Module):
             draw.text((x, y), text, fill=0, font=font)
         except Exception as e:
             _log.warning("Failed to render placeholder: %s", e)
-        
+
         return placeholder
 
     def next_update_delay(self) -> float | None:
@@ -246,52 +299,56 @@ class PhotoGallery(Module):
             # Validate that it's an image
             img = Image.open(file_path)
             img.close()
-            
+
             # Copy to gallery directory
             dest_path = self.gallery_dir / file_path.name
             dest_path.write_bytes(file_path.read_bytes())
-            
+
             # Store display mode if provided
             if display_mode and display_mode in ["stretched", "full_screen", "bordered"]:
                 modes = self._get_photo_modes()
                 modes[file_path.name] = display_mode
                 self._save_photo_modes(modes)
-                _log.info("Added photo: %s with display_mode: %s", dest_path, display_mode)
+                _log.info("Added photo: %s (display_mode=%s)", dest_path, display_mode)
             else:
                 _log.info("Added photo: %s", dest_path)
-            
-            # Update photos list
+
+            # Update photos list and force an immediate redraw
             self._load_photos()
-            
+            self.on_action_button()
+
             return True
         except Exception as e:
-            _log.error("Failed to add photo: %s", e)
+            _log.exception("Failed to add photo %s: %s", file_path, e)
             return False
 
     def remove_photo(self, filename: str) -> bool:
         """Remove a photo from the gallery. Return True if successful."""
         try:
             photo_path = self.gallery_dir / filename
-            if photo_path.exists() and photo_path.is_file():
-                photo_path.unlink()
-                
-                # Remove metadata for this photo
-                modes = self._get_photo_modes()
-                if filename in modes:
-                    del modes[filename]
-                    self._save_photo_modes(modes)
-                
-                # Reset index if needed
-                with self._lock:
-                    if self._current_photo_index >= len(self._photos) - 1:
-                        self._current_photo_index = 0
-                
-                self._load_photos()
-                _log.info("Removed photo: %s", filename)
-                return True
-            return False
+            if not (photo_path.exists() and photo_path.is_file()):
+                _log.warning("remove_photo: %s does not exist", photo_path)
+                return False
+
+            photo_path.unlink()
+
+            # Remove metadata for this photo
+            modes = self._get_photo_modes()
+            if filename in modes:
+                del modes[filename]
+                self._save_photo_modes(modes)
+
+            # Reset index if needed
+            with self._lock:
+                if self._current_photo_index >= len(self._photos) - 1:
+                    self._current_photo_index = 0
+
+            self._load_photos()
+            _log.info("Removed photo: %s", filename)
+            self.on_action_button()
+            return True
         except Exception as e:
-            _log.error("Failed to remove photo: %s", e)
+            _log.exception("Failed to remove photo %s: %s", filename, e)
             return False
 
     def get_photos_list(self) -> list[str]:

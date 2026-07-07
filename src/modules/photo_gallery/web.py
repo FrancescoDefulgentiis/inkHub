@@ -35,6 +35,11 @@ def allowed_file(filename: str) -> bool:
 
 def create_app(gallery: PhotoGallery) -> Flask:
     """Create and configure the Flask app for gallery management."""
+    _log.info(
+        "Creating Flask app (gallery_dir=%s, max_upload=%d bytes)",
+        gallery.gallery_dir,
+        MAX_FILE_SIZE,
+    )
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_SIZE
     app.config["UPLOAD_FOLDER"] = str(gallery.gallery_dir)
@@ -242,6 +247,24 @@ def create_app(gallery: PhotoGallery) -> Flask:
             }
             .photo-item .delete-btn:hover {
                 background: #e53e3e;
+            }
+            .photo-item .photo-mode {
+                position: absolute;
+                bottom: 5px;
+                left: 5px;
+                right: 5px;
+                padding: 4px 6px;
+                font-size: 0.75em;
+                border: none;
+                border-radius: 3px;
+                background: rgba(255, 255, 255, 0.9);
+                color: #333;
+                cursor: pointer;
+                opacity: 0;
+                transition: opacity 0.3s;
+            }
+            .photo-item:hover .photo-mode {
+                opacity: 1;
             }
             .empty-message {
                 text-align: center;
@@ -478,9 +501,10 @@ def create_app(gallery: PhotoGallery) -> Flask:
                 fetch('/api/photos')
                     .then(r => r.json())
                     .then(data => {
+                        const defaultMode = data.default_display_mode || 'stretched';
                         photoCountEl.textContent = data.photos.length;
-                        currentModeEl.textContent = data.display_mode || '-';
-                        displayModeSelect.value = data.display_mode || 'stretched';
+                        currentModeEl.textContent = defaultMode;
+                        displayModeSelect.value = defaultMode;
                         changeRateInput.value = data.change_rate || 60;
 
                         if (data.photos.length === 0) {
@@ -488,17 +512,50 @@ def create_app(gallery: PhotoGallery) -> Flask:
                             emptyMessage.style.display = 'block';
                         } else {
                             emptyMessage.style.display = 'none';
-                            galleryGrid.innerHTML = data.photos.map(photo => `
+                            galleryGrid.innerHTML = data.photos.map(photo => {
+                                const filename = photo.filename;
+                                const mode = photo.display_mode || defaultMode;
+                                const encoded = encodeURIComponent(filename);
+                                const safeName = filename.replace(/&/g, '&amp;')
+                                                         .replace(/"/g, '&quot;')
+                                                         .replace(/</g, '&lt;')
+                                                         .replace(/>/g, '&gt;');
+                                return `
                                 <div class="photo-item">
-                                    <img src="/photo/${encodeURIComponent(photo)}" alt="${photo}">
-                                    <button class="delete-btn" onclick="deletePhoto('${photo}')">X</button>
-                                </div>
-                            `).join('');
+                                    <img src="/photo/${encoded}" alt="${safeName}" title="${safeName}">
+                                    <select class="photo-mode" onchange="updatePhotoMode('${safeName}', this.value)" title="Display mode for ${safeName}">
+                                        <option value="stretched"${mode === 'stretched' ? ' selected' : ''}>Stretched</option>
+                                        <option value="full_screen"${mode === 'full_screen' ? ' selected' : ''}>Full Screen</option>
+                                        <option value="bordered"${mode === 'bordered' ? ' selected' : ''}>Bordered</option>
+                                    </select>
+                                    <button class="delete-btn" onclick="deletePhoto('${safeName}')">X</button>
+                                </div>`;
+                            }).join('');
                         }
                     })
                     .catch(err => {
                         console.error('Failed to load gallery:', err);
                         showAlert('Failed to load gallery', 'error');
+                    });
+            }
+
+            function updatePhotoMode(filename, mode) {
+                fetch(`/api/photos/${encodeURIComponent(filename)}/mode`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ display_mode: mode })
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            showAlert(`Display mode for "${filename}" set to ${mode}`, 'success');
+                        } else {
+                            showAlert(`Failed to set mode: ${data.error}`, 'error');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Set mode failed:', err);
+                        showAlert('Failed to set display mode', 'error');
                     });
             }
 
@@ -561,48 +618,58 @@ def create_app(gallery: PhotoGallery) -> Flask:
     @app.route("/")
     def index():
         """Render the main gallery management page."""
+        _log.info("GET / from %s", request.remote_addr)
         return render_template_string(HTML_TEMPLATE)
 
     @app.route("/upload", methods=["POST"])
     def upload_file():
         """Handle photo upload."""
+        _log.info("POST /upload from %s", request.remote_addr)
         if "file" not in request.files:
+            _log.warning("Upload rejected: no file in request")
             return jsonify({"error": "No file provided"}), 400
 
         file = request.files["file"]
         if file.filename == "":
+            _log.warning("Upload rejected: empty filename")
             return jsonify({"error": "No file selected"}), 400
 
         if not allowed_file(file.filename):
+            _log.warning("Upload rejected: disallowed file type %r", file.filename)
             return jsonify({"error": "Invalid file type"}), 400
 
         try:
             filename = secure_filename(file.filename)
             filepath = Path(app.config["UPLOAD_FOLDER"]) / filename
             file.save(str(filepath))
+            _log.info("Saved uploaded file to %s", filepath)
 
-            # Add to gallery module
             display_mode = request.form.get("display_mode")
-            gallery.add_photo(filepath, display_mode)
+            added = gallery.add_photo(filepath, display_mode)
+            if not added:
+                _log.error("gallery.add_photo returned False for %s", filepath)
+                return jsonify({"error": "Failed to add photo to gallery"}), 500
 
             return jsonify({"success": True}), 200
         except Exception as e:
-            _log.error("Upload failed: %s", e)
+            _log.exception("Upload failed: %s", e)
             return jsonify({"error": "Upload failed"}), 500
 
     @app.route("/photo/<filename>")
     def get_photo(filename):
         """Serve a photo thumbnail for preview."""
+        _log.debug("GET /photo/%s from %s", filename, request.remote_addr)
         try:
             filename = secure_filename(filename)
-            filepath = Path(app.config["UPLOAD_FOLDER"]) / filename
+            filepath = (Path(app.config["UPLOAD_FOLDER"]) / filename).resolve()
 
             if not filepath.exists():
+                _log.warning("Photo not found: %s", filepath)
                 return "File not found", 404
 
-            return send_file(str(filepath), mimetype="image/jpeg")
+            return send_file(str(filepath))
         except Exception as e:
-            _log.error("Failed to serve photo: %s", e)
+            _log.exception("Failed to serve photo %s: %s", filename, e)
             return "Error serving photo", 500
 
     @app.route("/api/photos", methods=["GET"])
@@ -610,73 +677,87 @@ def create_app(gallery: PhotoGallery) -> Flask:
         """Get list of photos with their individual display modes and global settings."""
         try:
             photos = gallery.get_photos_list()
-            # Return each photo with its display mode
             photo_list = [
                 {
                     "filename": photo,
-                    "display_mode": gallery.get_photo_display_mode(photo)
+                    "display_mode": gallery.get_photo_display_mode(photo),
                 }
                 for photo in photos
             ]
+            default_display_mode = gallery.config.get("display_mode", "stretched")
+            change_rate = gallery.config.get("change_rate", 60)
+            _log.debug(
+                "GET /api/photos -> %d photos (default_mode=%s, change_rate=%s)",
+                len(photo_list),
+                default_display_mode,
+                change_rate,
+            )
             return jsonify({
                 "photos": photo_list,
-                "default_display_mode": gallery.config.get("display_mode", "stretched"),
-                "change_rate": gallery.config.get("change_rate", 60),
+                "default_display_mode": default_display_mode,
+                "change_rate": change_rate,
             }), 200
         except Exception as e:
-            _log.error("Failed to list photos: %s", e)
+            _log.exception("Failed to list photos: %s", e)
             return jsonify({"error": "Failed to list photos"}), 500
 
     @app.route("/api/photos/<filename>", methods=["DELETE"])
     def delete_photo(filename):
         """Delete a photo from the gallery."""
+        _log.info("DELETE /api/photos/%s from %s", filename, request.remote_addr)
         try:
             filename = secure_filename(filename)
             success = gallery.remove_photo(filename)
             if success:
                 return jsonify({"success": True}), 200
-            else:
-                return jsonify({"error": "Photo not found"}), 404
+            _log.warning("Photo not found for deletion: %s", filename)
+            return jsonify({"error": "Photo not found"}), 404
         except Exception as e:
-            _log.error("Failed to delete photo: %s", e)
+            _log.exception("Failed to delete photo %s: %s", filename, e)
             return jsonify({"error": "Delete failed"}), 500
 
     @app.route("/api/photos/<filename>/mode", methods=["POST"])
     def update_photo_mode(filename):
         """Update display mode for a specific photo."""
+        _log.info("POST /api/photos/%s/mode from %s", filename, request.remote_addr)
         try:
             filename = secure_filename(filename)
-            data = request.get_json()
+            data = request.get_json(silent=True) or {}
             display_mode = data.get("display_mode")
-            
+
             if not display_mode:
+                _log.warning("No display_mode provided for %s", filename)
                 return jsonify({"error": "No display_mode provided"}), 400
-            
+
             success = gallery.set_photo_display_mode(filename, display_mode)
             if success:
                 return jsonify({"success": True}), 200
-            else:
-                return jsonify({"error": "Invalid display mode"}), 400
+            _log.warning(
+                "Rejected display_mode %r for %s (invalid)", display_mode, filename
+            )
+            return jsonify({"error": "Invalid display mode"}), 400
         except Exception as e:
-            _log.error("Failed to update photo mode: %s", e)
+            _log.exception("Failed to update mode for %s: %s", filename, e)
             return jsonify({"error": "Update failed"}), 500
 
     @app.route("/api/settings", methods=["POST"])
     def update_settings():
         """Update gallery settings."""
+        _log.info("POST /api/settings from %s", request.remote_addr)
         try:
-            data = request.get_json()
+            data = request.get_json(silent=True) or {}
             display_mode = data.get("display_mode")
             change_rate = data.get("change_rate")
 
             if display_mode:
                 gallery.set_display_mode(display_mode)
-            if change_rate:
+            if change_rate is not None:
                 gallery.set_change_rate(int(change_rate))
 
             return jsonify({"success": True}), 200
         except Exception as e:
-            _log.error("Failed to update settings: %s", e)
+            _log.exception("Failed to update settings: %s", e)
             return jsonify({"error": "Failed to update settings"}), 500
 
+    _log.info("Flask app configured with routes: %s", sorted(str(r) for r in app.url_map.iter_rules()))
     return app

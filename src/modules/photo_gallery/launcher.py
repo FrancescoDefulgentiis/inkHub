@@ -30,23 +30,33 @@ class GalleryWebServer:
     def start(self) -> None:
         """Start the web server in a background thread."""
         if self._server_thread and self._server_thread.is_alive():
-            _log.warning("Server already running")
+            _log.warning("Server already running on %s:%d", self.host, self.port)
             return
 
+        _log.info(
+            "Starting Photo Gallery web server thread on %s:%d",
+            self.host,
+            self.port,
+        )
         self._server_thread = threading.Thread(
             target=self._run_server,
             daemon=True,
             name="photo-gallery-web",
         )
         self._server_thread.start()
-        _log.info("Photo Gallery web server started on %s:%d", self.host, self.port)
 
     def _run_server(self) -> None:
         """Run the Flask server (called in background thread)."""
         try:
+            _log.debug("Importing Flask app factory for photo gallery")
             from .web import create_app
-            
+
             self._app = create_app(self.gallery)
+            _log.info(
+                "Photo Gallery web server binding to http://%s:%d",
+                self.host,
+                self.port,
+            )
             # Use threading=False to avoid nested threading
             # use_reloader=False to prevent double initialization
             self._app.run(
@@ -56,8 +66,23 @@ class GalleryWebServer:
                 use_reloader=False,
                 threaded=True,
             )
+            _log.info("Photo Gallery web server exited cleanly")
+        except ImportError as e:
+            _log.error(
+                "Photo Gallery web server dependencies missing (%s). "
+                "Install with: pip install flask werkzeug",
+                e,
+            )
+        except OSError as e:
+            _log.error(
+                "Photo Gallery web server could not bind to %s:%d (%s). "
+                "Is the port in use?",
+                self.host,
+                self.port,
+                e,
+            )
         except Exception as e:
-            _log.error("Failed to start web server: %s", e)
+            _log.exception("Photo Gallery web server crashed: %s", e)
 
     def stop(self) -> None:
         """Stop the web server."""
