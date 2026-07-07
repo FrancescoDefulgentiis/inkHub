@@ -101,8 +101,8 @@ from typing import Any, Iterable
 import requests
 from PIL import Image, ImageDraw, ImageFont
 
-from ..module import Module
-from ..registry import register_module
+from ...module import Module
+from ...registry import register_module
 
 _log = logging.getLogger(__name__)
 

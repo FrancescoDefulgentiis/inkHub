@@ -52,7 +52,7 @@ class InkHubApp:
 
     @property
     def available_switch_modules(self) -> tuple[str, ...]:
-        """Return the module names bound to switch buttons 1-4."""
+        """Return the module names bound to switch buttons 1-9."""
         return self._switch_modules
 
     def _resolve_switch_modules(self) -> tuple[str, ...]:
@@ -65,25 +65,25 @@ class InkHubApp:
         for module_name in [active_module, *configured_modules, *available_modules()]:
             if module_name and module_name in discovered_modules and module_name not in slots:
                 slots.append(module_name)
-            if len(slots) == 4:
+            if len(slots) == 9:
                 break
         return tuple(slots)
 
     def press_button(self, index: int) -> str:
         """Handle a virtual button press from the terminal menu."""
-        if index < 4 and index < len(self._switch_modules):
+        if index < 9 and index < len(self._switch_modules):
             module_name = self._switch_modules[index]
             changed = self.switch_module(module_name)
             if changed:
                 return f"Switched to module '{module_name}'."
             return f"Module '{module_name}' is already active."
 
-        if index < 4:
+        if index < 9:
             message = f"No module is assigned to button {index + 1}."
             _log.warning(message)
             return message
 
-        if index == 4:
+        if index == 9:
             self.press_action_button()
             return f"Action button sent to '{self.active_module_name}'."
 

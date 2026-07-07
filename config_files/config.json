@@ -22,6 +22,15 @@
       "poll_interval": 1,
       "default_view": "now_playing",
       "queue_size": 5
+    },
+    "photo_gallery": {
+      "change_rate": 60,
+      "display_mode": "bordered",
+      "web_server": {
+        "enabled": true,
+        "host": "0.0.0.0",
+        "port": 5000
+      }
     }
   }
 }

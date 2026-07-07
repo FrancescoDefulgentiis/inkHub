@@ -44,7 +44,7 @@ def start_interactive_menu(app: AppController, config_path: str | Path) -> threa
 
 def _menu_loop(app: AppController, config_path: Path, config: dict[str, Any]) -> None:
     print()
-    print("InkHub terminal controls are active. Use 1-4 to switch modules, 5 for action, q/Esc to quit.")
+    print("InkHub terminal controls are active. Use 1-9 to switch modules, 0 for action, q/Esc to quit.")
 
     while True:
 
@@ -62,9 +62,13 @@ def _menu_loop(app: AppController, config_path: Path, config: dict[str, Any]) ->
                 print("Stopping InkHub.")
                 app.stop()
                 return
-            case "1" | "2" | "3" | "4" | "5":
+            case "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9":
                 try:
-                    message = app.press_button(int(key) - 1)
+                    button_index = int(key)
+                    if button_index == 0:
+                        message = app.press_button(9)
+                    else:
+                        message = app.press_button(button_index - 1)
                 except Exception:
                     _log.exception("Failed to handle virtual button %s", key)
                     print(f"Failed to handle button {key}. Check the logs for details.")
@@ -97,14 +101,14 @@ def _print_menu(
     print(f"Default  : {config.get('active_module', '<unset>')}")
     print("-" * 64)
     print("Switch buttons")
-    for slot in range(4):
+    for slot in range(9):
         if slot < len(slots):
             label = slots[slot]
             suffix = " (running)" if label == active_module_name else ""
             print(f"  {slot + 1}. {label}{suffix}")
         else:
             print(f"  {slot + 1}. [empty slot]")
-    print("  5. Action button for the running module")
+    print("  0. Action button for the running module")
     print("-" * 64)
     print("Extra actions")
     print("  C. Show config summary")
@@ -131,7 +135,7 @@ def _print_config_summary(
     print(f"Configured       : {', '.join(module_names) if module_names else '<none>'}")
     print(f"Log level        : {config.get('log_level', '<unset>')}")
     print("Control mode     : terminal menu only")
-    print("Button roles     : 1-4 switch modules, 5 triggers the running module")
+    print("Button roles     : 1-9 switch modules, 0 triggers the running module")
 
 
 def _print_diagnostics(
@@ -160,8 +164,8 @@ def _print_help() -> None:
     print()
     print("Launcher help")
     print("-" * 64)
-    print("1-4 : switch to the module shown in that slot")
-    print("5   : send the dedicated action button to the running module")
+    print("1-9 : switch to the module shown in that slot")
+    print("0   : send the dedicated action button to the running module")
     print("C   : print the config summary")
     print("D   : print diagnostics useful while wiring modules and hardware")
     print("H   : show this help")
