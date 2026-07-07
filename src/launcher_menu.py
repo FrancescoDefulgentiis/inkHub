@@ -11,6 +11,7 @@ from typing import Any, Protocol
 from flask import app
 
 from .config import load_config
+from . import diagnostics
 
 _log = logging.getLogger(__name__)
 
@@ -44,7 +45,8 @@ def start_interactive_menu(app: AppController, config_path: str | Path) -> threa
 
 def _menu_loop(app: AppController, config_path: Path, config: dict[str, Any]) -> None:
     print()
-    print("InkHub terminal controls are active. Use 1-9 to switch modules, 0 for action, q/Esc to quit.")
+    print("InkHub terminal controls are active. Use 1-9 to switch modules, 0 for action,")
+    print("D to toggle verbose logs, q/Esc to quit.")
 
     while True:
 
@@ -78,7 +80,12 @@ def _menu_loop(app: AppController, config_path: Path, config: dict[str, Any]) ->
                 _print_config_summary(config, config_path, app.active_module_name)
                 _wait_for_keypress()
             case "d":
-                _print_diagnostics(config, config_path, slots, app.active_module_name)
+                enabled = diagnostics.toggle()
+                if enabled:
+                    print("Diagnostics ON — verbose logging enabled.")
+                    _print_diagnostics(config, config_path, slots, app.active_module_name)
+                else:
+                    print("Diagnostics OFF — verbose logging disabled.")
                 _wait_for_keypress()
             case "h" | "?":
                 _print_help()
@@ -111,8 +118,9 @@ def _print_menu(
     print("  0. Action button for the running module")
     print("-" * 64)
     print("Extra actions")
+    diag_state = "ON" if diagnostics.is_enabled() else "OFF"
     print("  C. Show config summary")
-    print("  D. Show diagnostics")
+    print(f"  D. Toggle diagnostics / verbose logs (currently {diag_state})")
     print("  H. Show help")
     print("  Q / Esc. Quit")
     print("=" * 64)
@@ -158,6 +166,7 @@ def _print_diagnostics(
     print(f"Running slotted  : {active_module_name in switch_modules}")
     print(f"TTY stdin/stdout : {sys.stdin.isatty()}/{sys.stdout.isatty()}")
     print(f"OS mode          : {os.name}")
+    print(f"Diagnostics flag : {'ON' if diagnostics.is_enabled() else 'OFF'}")
 
 
 def _print_help() -> None:
@@ -167,7 +176,8 @@ def _print_help() -> None:
     print("1-9 : switch to the module shown in that slot")
     print("0   : send the dedicated action button to the running module")
     print("C   : print the config summary")
-    print("D   : print diagnostics useful while wiring modules and hardware")
+    print("D   : toggle diagnostics — enables/disables verbose logs and,")
+    print("      when turning ON, prints the diagnostics snapshot")
     print("H   : show this help")
     print("Q   : stop the app and quit")
     print("Esc : stop the app and quit")

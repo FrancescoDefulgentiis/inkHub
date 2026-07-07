@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import load_config
+from .diagnostics import configure as _configure_diagnostics
 from .display import Display
 from .registry import available_modules, create_module, discover_modules
 
@@ -26,7 +27,14 @@ class InkHubApp:
     ) -> None:
         self._config: dict[str, Any] = load_config(config_path)
 
-        logging.getLogger().setLevel(self._config.get("log_level", "INFO"))
+        verbose_level_name = str(self._config.get("log_level", "INFO")).upper()
+        verbose_level = logging.getLevelName(verbose_level_name)
+        if not isinstance(verbose_level, int):
+            verbose_level = logging.INFO
+        _configure_diagnostics(
+            verbose_level=verbose_level,
+            quiet_level=logging.WARNING,
+        )
 
         self._display = Display(
             driver_name=self._config["panel_driver"],
