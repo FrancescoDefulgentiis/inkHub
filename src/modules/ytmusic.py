@@ -163,6 +163,9 @@ class YouTubeMusicModule(Module):
         self._queue_size: int = int(
             self.config.get("queue_size", _DEFAULT_QUEUE_SIZE)
         )
+        self._change_confirm_polls: int = max(
+            1, int(self.config.get("change_confirm_polls", 2))
+        )
         default_view = str(self.config.get("default_view", "now_playing")).lower()
         self._view: str = "queue" if default_view == "queue" else "now_playing"
 
@@ -171,6 +174,8 @@ class YouTubeMusicModule(Module):
         self._state_lock = threading.Lock()
         self._view_lock = threading.Lock()
         self._last_pushed_key: tuple | None = None
+        self._pending_track: Track | None = None
+        self._pending_track_count: int = 0
         self._art_cache: dict[str, Image.Image] = {}
         self._art_cache_order: list[str] = []
         self._art_cache_limit = 16
@@ -678,31 +683,69 @@ class YouTubeMusicModule(Module):
             self._store_state(error="Latest history entry had no videoId.")
             return
 
+        with self._state_lock:
+            previous_current = self._state.current
+
+        # get_history() can briefly flap between two recent tracks around
+        # transitions. Only accept a change after N consecutive confirmations.
+        effective_current = current
+        if previous_current is not None and previous_current.video_id != current.video_id:
+            if (
+                self._pending_track is not None
+                and self._pending_track.video_id == current.video_id
+            ):
+                self._pending_track_count += 1
+            else:
+                self._pending_track = current
+                self._pending_track_count = 1
+
+            if self._pending_track_count < self._change_confirm_polls:
+                _log.info(
+                    "[%s] YT Music pending song change (%d/%d): '%s' (%s)",
+                    _ts(),
+                    self._pending_track_count,
+                    self._change_confirm_polls,
+                    current.title,
+                    current.video_id,
+                )
+                # Keep rendering the last committed track until stable.
+                effective_current = previous_current
+            else:
+                _log.info(
+                    "[%s] YT Music song change confirmed (%d polls)",
+                    _ts(),
+                    self._pending_track_count,
+                )
+                self._pending_track = None
+                self._pending_track_count = 0
+        else:
+            self._pending_track = None
+            self._pending_track_count = 0
+
         # If the current video hasn't changed, keep the queue we already have —
         # this avoids extra network chatter every poll.
         with self._state_lock:
             same_current = (
                 self._state.current is not None
-                and self._state.current.video_id == current.video_id
+                and self._state.current.video_id == effective_current.video_id
                 and self._state.queue
             )
-            previous_current = self._state.current
 
         if previous_current is None:
             _log.info(
                 "[%s] YT Music current song initialized: %s (%s)",
                 _ts(),
-                current.title,
-                current.video_id,
+                effective_current.title,
+                effective_current.video_id,
             )
-        elif previous_current.video_id != current.video_id:
+        elif previous_current.video_id != effective_current.video_id:
             _log.info(
                 "[%s] YT Music song change detected: '%s' (%s) -> '%s' (%s)",
                 _ts(),
                 previous_current.title,
                 previous_current.video_id,
-                current.title,
-                current.video_id,
+                effective_current.title,
+                effective_current.video_id,
             )
 
         queue: list[Track] = []
@@ -714,10 +757,10 @@ class YouTubeMusicModule(Module):
                 _log.info(
                     "[%s] YT Music fetch: watch playlist for videoId=%s",
                     _ts(),
-                    current.video_id,
+                    effective_current.video_id,
                 )
                 watch = client.get_watch_playlist(
-                    videoId=current.video_id, limit=self._queue_size + 3,
+                    videoId=effective_current.video_id, limit=self._queue_size + 3,
                 )
                 raw_tracks = watch.get("tracks") or []
                 queue = [
@@ -729,7 +772,7 @@ class YouTubeMusicModule(Module):
                     "YT Music watch-playlist fetch failed", exc_info=True,
                 )
 
-        self._store_state(current=current, queue=queue, error=None)
+        self._store_state(current=effective_current, queue=queue, error=None)
 
     def _store_state(
         self,
