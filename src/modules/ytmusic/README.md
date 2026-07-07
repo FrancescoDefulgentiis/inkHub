@@ -26,7 +26,7 @@ sure the credentials never accidentally end up in git.
 
 ## Point the module elsewhere (optional)
 
-The path is configurable in `config.json`:
+The path is configurable in `config_files/config.json`:
 
 ```json
 "ytmusic": {

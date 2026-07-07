@@ -18,7 +18,7 @@
       "view": "weekend"
     },
     "ytmusic": {
-      "auth_file": "src/modules/ytmusic/browser.json",
+      "auth_file": "config_files/browser.json",
       "poll_interval": 5,
       "default_view": "now_playing",
       "queue_size": 5

@@ -7,8 +7,8 @@ import sys
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="inkhub", description="Modular e-ink dashboard")
     parser.add_argument(
-        "-c", "--config", default="config.json",
-        help="Path to config file (default: config.json)",
+        "-c", "--config", default="config_files/config.json",
+        help="Path to config file (default: config_files/config.json)",
     )
     parser.add_argument(
         "--no-menu",
