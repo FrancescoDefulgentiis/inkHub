@@ -666,7 +666,6 @@ class YouTubeMusicModule(Module):
             self._store_state(error=self._yt_error)
             return
         try:
-            _log.info("[%s] YT Music fetch: history", _ts())
             history = client.get_history()
         except Exception as exc:
             _log.exception("YT Music history fetch failed")
@@ -700,22 +699,9 @@ class YouTubeMusicModule(Module):
                 self._pending_track_count = 1
 
             if self._pending_track_count < self._change_confirm_polls:
-                _log.info(
-                    "[%s] YT Music pending song change (%d/%d): '%s' (%s)",
-                    _ts(),
-                    self._pending_track_count,
-                    self._change_confirm_polls,
-                    current.title,
-                    current.video_id,
-                )
                 # Keep rendering the last committed track until stable.
                 effective_current = previous_current
             else:
-                _log.info(
-                    "[%s] YT Music song change confirmed (%d polls)",
-                    _ts(),
-                    self._pending_track_count,
-                )
                 self._pending_track = None
                 self._pending_track_count = 0
         else:
@@ -731,34 +717,12 @@ class YouTubeMusicModule(Module):
                 and self._state.queue
             )
 
-        if previous_current is None:
-            _log.info(
-                "[%s] YT Music current song initialized: %s (%s)",
-                _ts(),
-                effective_current.title,
-                effective_current.video_id,
-            )
-        elif previous_current.video_id != effective_current.video_id:
-            _log.info(
-                "[%s] YT Music song change detected: '%s' (%s) -> '%s' (%s)",
-                _ts(),
-                previous_current.title,
-                previous_current.video_id,
-                effective_current.title,
-                effective_current.video_id,
-            )
-
         queue: list[Track] = []
         if same_current:
             with self._state_lock:
                 queue = list(self._state.queue)
         else:
             try:
-                _log.info(
-                    "[%s] YT Music fetch: watch playlist for videoId=%s",
-                    _ts(),
-                    effective_current.video_id,
-                )
                 watch = client.get_watch_playlist(
                     videoId=effective_current.video_id, limit=self._queue_size + 3,
                 )
@@ -800,12 +764,6 @@ class YouTubeMusicModule(Module):
                 self._last_pushed_key = key
 
         if changed:
-            _log.info(
-                "[%s] YT Music push: render wake requested (current=%s, queue=%d)",
-                _ts(),
-                self._state.current.video_id if self._state.current else "none",
-                len(self._state.queue),
-            )
             self._render_wake.set()
 
     def _ensure_client(self) -> Any | None:
