@@ -3,9 +3,12 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+import subprocess
 import sys
 import threading
 from typing import Any, Protocol
+
+from flask import app
 
 from .config import load_config
 
@@ -44,43 +47,41 @@ def _menu_loop(app: AppController, config_path: Path, config: dict[str, Any]) ->
     print("InkHub terminal controls are active. Use 1-4 to switch modules, 5 for action, q/Esc to quit.")
 
     while True:
+
         slots = list(app.available_switch_modules)
         _print_menu(config, config_path, slots, app.active_module_name)
         key = _read_key().lower()
         print()
 
-        if key in {"q", "\x1b"}:
-            print("Stopping InkHub.")
-            app.stop()
-            return
-
-        if key in {"1", "2", "3", "4", "5"}:
-            try:
-                message = app.press_button(int(key) - 1)
-            except Exception:
-                _log.exception("Failed to handle virtual button %s", key)
-                print(f"Failed to handle button {key}. Check the logs for details.")
-            else:
-                print(message)
-            continue
-
-        if key == "c":
-            _print_config_summary(config, config_path, app.active_module_name)
-            _wait_for_keypress()
-            continue
-
-        if key == "d":
-            _print_diagnostics(config, config_path, slots, app.active_module_name)
-            _wait_for_keypress()
-            continue
-
-        if key in {"h", "?"}:
-            _print_help()
-            _wait_for_keypress()
-            continue
-
-        print(f"Unsupported key: {key!r}")
-        _wait_for_keypress()
+        match key:
+            case "t" | "\x02":
+                if os.environ.get("TMUX"):
+                    subprocess.run(["tmux", "detach-client"])
+                    return
+            case "q" | "\x1b":
+                print("Stopping InkHub.")
+                app.stop()
+                return
+            case "1" | "2" | "3" | "4" | "5":
+                try:
+                    message = app.press_button(int(key) - 1)
+                except Exception:
+                    _log.exception("Failed to handle virtual button %s", key)
+                    print(f"Failed to handle button {key}. Check the logs for details.")
+                else:
+                    print(message)
+            case "c":
+                _print_config_summary(config, config_path, app.active_module_name)
+                _wait_for_keypress()
+            case "d":
+                _print_diagnostics(config, config_path, slots, app.active_module_name)
+                _wait_for_keypress()
+            case "h" | "?":
+                _print_help()
+                _wait_for_keypress()
+            case _:
+                print(f"Unsupported key: {key!r}")
+                _wait_for_keypress()
 
 def _print_menu(
     config: dict[str, Any],
