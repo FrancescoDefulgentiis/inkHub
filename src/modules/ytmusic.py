@@ -164,7 +164,7 @@ class YouTubeMusicModule(Module):
             self.config.get("queue_size", _DEFAULT_QUEUE_SIZE)
         )
         self._change_confirm_polls: int = max(
-            1, int(self.config.get("change_confirm_polls", 2))
+            1, int(self.config.get("change_confirm_polls", 3))
         )
         default_view = str(self.config.get("default_view", "now_playing")).lower()
         self._view: str = "queue" if default_view == "queue" else "now_playing"
