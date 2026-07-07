@@ -607,13 +607,21 @@ def create_app(gallery: PhotoGallery) -> Flask:
 
     @app.route("/api/photos", methods=["GET"])
     def list_photos():
-        """Get list of photos and current settings."""
+        """Get list of photos with their individual display modes and global settings."""
         try:
             photos = gallery.get_photos_list()
+            # Return each photo with its display mode
+            photo_list = [
+                {
+                    "filename": photo,
+                    "display_mode": gallery.get_photo_display_mode(photo)
+                }
+                for photo in photos
+            ]
             return jsonify({
-                "photos": photos,
-                "display_mode": gallery._config_data.get("display_mode", "stretched"),
-                "change_rate": gallery._config_data.get("change_rate", 60),
+                "photos": photo_list,
+                "default_display_mode": gallery.config.get("display_mode", "stretched"),
+                "change_rate": gallery.config.get("change_rate", 60),
             }), 200
         except Exception as e:
             _log.error("Failed to list photos: %s", e)
@@ -632,6 +640,26 @@ def create_app(gallery: PhotoGallery) -> Flask:
         except Exception as e:
             _log.error("Failed to delete photo: %s", e)
             return jsonify({"error": "Delete failed"}), 500
+
+    @app.route("/api/photos/<filename>/mode", methods=["POST"])
+    def update_photo_mode(filename):
+        """Update display mode for a specific photo."""
+        try:
+            filename = secure_filename(filename)
+            data = request.get_json()
+            display_mode = data.get("display_mode")
+            
+            if not display_mode:
+                return jsonify({"error": "No display_mode provided"}), 400
+            
+            success = gallery.set_photo_display_mode(filename, display_mode)
+            if success:
+                return jsonify({"success": True}), 200
+            else:
+                return jsonify({"error": "Invalid display mode"}), 400
+        except Exception as e:
+            _log.error("Failed to update photo mode: %s", e)
+            return jsonify({"error": "Update failed"}), 500
 
     @app.route("/api/settings", methods=["POST"])
     def update_settings():

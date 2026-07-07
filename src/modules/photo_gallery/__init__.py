@@ -20,7 +20,7 @@ _log = logging.getLogger(__name__)
 DEFAULT_CHANGE_RATE = 60  # seconds
 DEFAULT_DISPLAY_MODE = "stretched"  # "full_screen", "stretched", "bordered"
 GALLERY_DIR = Path("photo_gallery")
-CONFIG_FILE = GALLERY_DIR / "gallery_config.json"
+CONFIG_FILE = Path("config_files/config.json")
 
 
 @register_module("photo_gallery")
@@ -30,46 +30,87 @@ class PhotoGallery(Module):
     def __init__(self, config: Mapping[str, Any], size: tuple[int, int]) -> None:
         super().__init__(config, size)
         self.gallery_dir = GALLERY_DIR
-        self.config_file = CONFIG_FILE
         self._setup_gallery_dir()
         
         self._current_photo_index = 0
         self._photos: list[Path] = []
-        self._config_data = self._load_config()
         self._last_rotation_time = time.time()
         self._lock = threading.Lock()
         
         self._load_photos()
+        self._web_server: Any = None
+
+    def start(self) -> None:
+        """Start the photo gallery module and web server."""
+        super().start()
+        
+        # Start the web server if enabled
+        web_server_config = self.config.get("web_server", {})
+        if web_server_config.get("enabled", True):
+            try:
+                from .launcher import start_gallery_web_server
+                
+                host = web_server_config.get("host", "0.0.0.0")
+                port = web_server_config.get("port", 5000)
+                
+                self._web_server = start_gallery_web_server(self, host, port)
+                _log.info("Photo Gallery web server started on %s:%d", host, port)
+            except Exception as e:
+                _log.error("Failed to start Photo Gallery web server: %s", e)
+
+    def stop(self) -> None:
+        """Stop the photo gallery module and web server."""
+        if self._web_server:
+            try:
+                self._web_server.stop()
+            except Exception as e:
+                _log.error("Failed to stop web server: %s", e)
+        super().stop()
 
     def _setup_gallery_dir(self) -> None:
         """Create gallery directory if it doesn't exist."""
         self.gallery_dir.mkdir(exist_ok=True)
 
-    def _load_config(self) -> dict[str, Any]:
-        """Load or create gallery configuration."""
-        if self.config_file.exists():
-            try:
-                with open(self.config_file, "r") as f:
-                    return json.load(f)
-            except Exception as e:
-                _log.warning("Failed to load config: %s", e)
-        
-        # Default config
-        default_config = {
-            "change_rate": self.config.get("change_rate", DEFAULT_CHANGE_RATE),
-            "display_mode": self.config.get("display_mode", DEFAULT_DISPLAY_MODE),
-        }
-        self._save_config(default_config)
-        return default_config
-
-    def _save_config(self, cfg: dict[str, Any]) -> None:
-        """Save configuration to file."""
+    def _get_global_config(self) -> dict[str, Any]:
+        """Load the global config.json file."""
         try:
-            with open(self.config_file, "w") as f:
-                json.dump(cfg, f, indent=2)
-            self._config_data = cfg
+            if CONFIG_FILE.exists():
+                with open(CONFIG_FILE, "r") as f:
+                    return json.load(f)
         except Exception as e:
-            _log.error("Failed to save config: %s", e)
+            _log.warning("Failed to load global config: %s", e)
+        return {}
+
+    def _save_global_config(self, config: dict[str, Any]) -> None:
+        """Save the global config.json file."""
+        try:
+            with open(CONFIG_FILE, "w") as f:
+                json.dump(config, f, indent=2)
+        except Exception as e:
+            _log.error("Failed to save global config: %s", e)
+
+    def _get_photo_modes(self) -> dict[str, str]:
+        """Get per-photo display modes from global config."""
+        try:
+            global_config = self._get_global_config()
+            photo_gallery_config = global_config.get("modules", {}).get("photo_gallery", {})
+            return photo_gallery_config.get("photo_modes", {})
+        except Exception:
+            return {}
+
+    def _save_photo_modes(self, modes: dict[str, str]) -> None:
+        """Save per-photo display modes to global config."""
+        try:
+            global_config = self._get_global_config()
+            if "modules" not in global_config:
+                global_config["modules"] = {}
+            if "photo_gallery" not in global_config["modules"]:
+                global_config["modules"]["photo_gallery"] = {}
+            
+            global_config["modules"]["photo_gallery"]["photo_modes"] = modes
+            self._save_global_config(global_config)
+        except Exception as e:
+            _log.error("Failed to save photo modes: %s", e)
 
     def _load_photos(self) -> None:
         """Load list of photo files from gallery directory."""
@@ -106,8 +147,10 @@ class PhotoGallery(Module):
             if img.mode != "RGB":
                 img = img.convert("RGB")
             
-            # Apply display mode
-            display_mode = self._config_data.get("display_mode", DEFAULT_DISPLAY_MODE)
+            # Get display mode for this photo (or use default from config)
+            filename = photo_path.name
+            photo_modes = self._get_photo_modes()
+            display_mode = photo_modes.get(filename, self.config.get("display_mode", DEFAULT_DISPLAY_MODE))
             img = self._apply_display_mode(img, display_mode)
             
             # Convert to 1-bit (black and white) for e-ink
@@ -156,7 +199,7 @@ class PhotoGallery(Module):
     def render(self) -> Image.Image:
         """Render the current photo or a placeholder if no photos exist."""
         # Check if it's time to rotate
-        change_rate = self._config_data.get("change_rate", DEFAULT_CHANGE_RATE)
+        change_rate = self.config.get("change_rate", DEFAULT_CHANGE_RATE)
         current_time = time.time()
         if current_time - self._last_rotation_time >= change_rate:
             self._rotate_to_next_photo()
@@ -194,11 +237,11 @@ class PhotoGallery(Module):
 
     def next_update_delay(self) -> float | None:
         """Return update interval based on change_rate config."""
-        change_rate = self._config_data.get("change_rate", DEFAULT_CHANGE_RATE)
+        change_rate = self.config.get("change_rate", DEFAULT_CHANGE_RATE)
         return change_rate
 
     def add_photo(self, file_path: Path, display_mode: str | None = None) -> bool:
-        """Add a photo to the gallery. Return True if successful."""
+        """Add a photo to the gallery with optional display mode. Return True if successful."""
         try:
             # Validate that it's an image
             img = Image.open(file_path)
@@ -208,15 +251,18 @@ class PhotoGallery(Module):
             dest_path = self.gallery_dir / file_path.name
             dest_path.write_bytes(file_path.read_bytes())
             
+            # Store display mode if provided
+            if display_mode and display_mode in ["stretched", "full_screen", "bordered"]:
+                modes = self._get_photo_modes()
+                modes[file_path.name] = display_mode
+                self._save_photo_modes(modes)
+                _log.info("Added photo: %s with display_mode: %s", dest_path, display_mode)
+            else:
+                _log.info("Added photo: %s", dest_path)
+            
             # Update photos list
             self._load_photos()
             
-            # Update display mode if provided
-            if display_mode:
-                self._config_data["display_mode"] = display_mode
-                self._save_config(self._config_data)
-            
-            _log.info("Added photo: %s", dest_path)
             return True
         except Exception as e:
             _log.error("Failed to add photo: %s", e)
@@ -228,6 +274,12 @@ class PhotoGallery(Module):
             photo_path = self.gallery_dir / filename
             if photo_path.exists() and photo_path.is_file():
                 photo_path.unlink()
+                
+                # Remove metadata for this photo
+                modes = self._get_photo_modes()
+                if filename in modes:
+                    del modes[filename]
+                    self._save_photo_modes(modes)
                 
                 # Reset index if needed
                 with self._lock:
@@ -247,17 +299,28 @@ class PhotoGallery(Module):
         with self._lock:
             return [p.name for p in self._photos]
 
+    def get_photo_display_mode(self, filename: str) -> str:
+        """Get the display mode for a specific photo."""
+        modes = self._get_photo_modes()
+        return modes.get(filename, self.config.get("display_mode", DEFAULT_DISPLAY_MODE))
+
+    def set_photo_display_mode(self, filename: str, mode: str) -> bool:
+        """Set the display mode for a specific photo."""
+        if mode in ["stretched", "full_screen", "bordered"]:
+            modes = self._get_photo_modes()
+            modes[filename] = mode
+            self._save_photo_modes(modes)
+            _log.info("Set display mode for %s to %s", filename, mode)
+            self.on_action_button()  # Force immediate redraw
+            return True
+        return False
+
     def set_change_rate(self, seconds: int) -> None:
-        """Set the photo change rate in seconds."""
-        if seconds > 0:
-            self._config_data["change_rate"] = seconds
-            self._save_config(self._config_data)
-            _log.info("Changed rate set to %d seconds", seconds)
+        """Settings are read-only and configured in config.json."""
+        _log.info("Change rate setting requested: %d seconds (read-only, configure in config.json)", seconds)
 
     def set_display_mode(self, mode: str) -> None:
-        """Set the display mode: stretched, full_screen, or bordered."""
+        """Settings are read-only and configured in config.json."""
         if mode in ["stretched", "full_screen", "bordered"]:
-            self._config_data["display_mode"] = mode
-            self._save_config(self._config_data)
-            _log.info("Display mode set to %s", mode)
+            _log.info("Display mode setting requested: %s (read-only, configure in config.json)", mode)
             self.on_action_button()  # Force immediate redraw
