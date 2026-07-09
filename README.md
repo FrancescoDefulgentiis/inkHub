@@ -10,10 +10,6 @@ Built-in modules:
 | Module          | What it shows                                             |
 | --------------- | --------------------------------------------------------- |
 | `dashboard`     | Clock + local weather + quote of the day                  |
-| `weather`       | Detailed current conditions and 7-day forecast            |
-| `formula1`      | Next race weekend and driver / constructor standings      |
-| `ytmusic`       | Now-playing + up-next queue from a YouTube Music account  |
-| `photo_gallery` | Rotating photo gallery with a small web uploader UI       |
 
 ## Quick start
 
@@ -23,39 +19,20 @@ cd inkHub
 
 # 1. Create and activate a virtualenv
 python -m venv .venv
-source .venv/bin/activate            # Windows: .venv\Scripts\Activate.ps1
+source .venv/bin/activate
 
 # 2. Install Python dependencies
 pip install -r requirements.txt
 
-# 3. Install the Waveshare e-paper driver (see next section)
+# 3. Install the Waveshare e-paper driver (drops waveshare_epd/ in the repo root)
+curl -L https://github.com/waveshareteam/e-Paper/archive/refs/heads/master.tar.gz \
+  | tar -xz --strip-components=4 "e-Paper-master/RaspberryPi_JetsonNano/python/lib/waveshare_epd"
 
-# 4. Adjust src/config.json to match your panel and preferences
+# 4. Adjust src/config.json to match your panel and preferences(optional)
 
 # 5. Run
 python run.py
 ```
-
-## Waveshare e-paper driver
-
-InkHub does not ship the Waveshare Python driver itself — it imports it as a
-regular Python package called `waveshare_epd`. Grab the pinned upstream copy
-that InkHub was developed against here:
-
-<https://github.com/waveshareteam/e-Paper/tree/702def06bcb75983c98b0f9d25d43c552c248eb0/RaspberryPi%26JetsonNano/python/lib/waveshare_epd>
-
-The simplest install is to drop the whole `waveshare_epd/` folder from that
-tree into the repository root (it is already git-ignored) or anywhere on your
-`PYTHONPATH`:
-
-```bash
-# From the repo root
-git clone --depth 1 https://github.com/waveshareteam/e-Paper.git /tmp/e-Paper
-cp -r "/tmp/e-Paper/RaspberryPi&JetsonNano/python/lib/waveshare_epd" .
-```
-
-On a Raspberry Pi you also need the system-side SPI / GPIO bits the driver
-depends on — follow the instructions in the upstream `e-Paper` repository.
 
 ## Configuration
 
