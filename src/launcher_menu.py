@@ -12,6 +12,7 @@ from flask import app
 
 from .config import load_config
 from . import diagnostics
+from .registry import available_modules
 
 _log = logging.getLogger(__name__)
 
@@ -132,7 +133,7 @@ def _print_config_summary(
     config_path: Path,
     active_module_name: str,
 ) -> None:
-    module_names = sorted(str(name) for name in config.get("modules", {}))
+    module_names = available_modules()
     print()
     print("Config summary")
     print("-" * 64)
@@ -140,7 +141,7 @@ def _print_config_summary(
     print(f"Panel driver     : {config.get('panel_driver', '<unset>')}")
     print(f"Running module   : {active_module_name}")
     print(f"Default module   : {config.get('active_module', '<unset>')}")
-    print(f"Configured       : {', '.join(module_names) if module_names else '<none>'}")
+    print(f"Discovered       : {', '.join(module_names) if module_names else '<none>'}")
     print(f"Log level        : {config.get('log_level', '<unset>')}")
     print("Control mode     : terminal menu only")
     print("Button roles     : 1-9 switch modules, 0 triggers the running module")
@@ -152,7 +153,7 @@ def _print_diagnostics(
     switch_modules: list[str],
     active_module_name: str,
 ) -> None:
-    configured_modules = sorted(str(name) for name in config.get("modules", {}))
+    discovered = available_modules()
     print()
     print("Diagnostics")
     print("-" * 64)
@@ -161,7 +162,7 @@ def _print_diagnostics(
     print(f"Working dir      : {Path.cwd()}")
     print(f"Config exists    : {config_path.resolve().is_file()}")
     print(f"Running module   : {active_module_name}")
-    print(f"Configured mods  : {configured_modules if configured_modules else []}")
+    print(f"Discovered mods  : {discovered if discovered else []}")
     print(f"Switch modules   : {switch_modules if switch_modules else []}")
     print(f"Running slotted  : {active_module_name in switch_modules}")
     print(f"TTY stdin/stdout : {sys.stdin.isatty()}/{sys.stdout.isatty()}")

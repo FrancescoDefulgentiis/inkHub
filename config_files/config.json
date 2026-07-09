@@ -3,43 +3,5 @@
   "active_module": "dashboard",
   "rotation": 0,
   "log_level": "INFO",
-  "modules": {
-    "dashboard": {
-      "time_format": "%H:%M",
-      "date_format": "%A, %d %B %Y",
-      "town": "Monterotondo",
-      "country": "Italy",
-      "temperature_unit": "celsius",
-      "wind_speed_unit": "kmh",
-      "quote_url": "https://zenquotes.io/api/today",
-      "quote_cache_path": ".cache/dashboard_quote.json"
-    },
-    "weather": {
-      "town": "Monterotondo",
-      "country": "Italy",
-      "temperature_unit": "celsius",
-      "wind_speed_unit": "kmh"
-    },
-    "formula1": {
-      "view": "weekend"
-    },
-    "ytmusic": {
-      "auth_file": "config_files/browser.json",
-      "poll_interval": 1,
-      "default_view": "now_playing",
-      "queue_size": 5
-    },
-    "photo_gallery": {
-      "change_rate": 60,
-      "display_mode": "bordered",
-      "web_server": {
-        "enabled": true,
-        "host": "0.0.0.0",
-        "port": 5000
-      },
-      "photo_modes": {
-        "test.jpg": "stretched"
-      }
-    }
-  }
+  "switch_modules": ["dashboard", "weather", "formula1", "ytmusic", "photo_gallery"]
 }

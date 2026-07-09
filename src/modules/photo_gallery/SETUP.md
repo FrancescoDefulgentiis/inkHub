@@ -49,10 +49,18 @@ src/modules/photo_gallery/
 ├── __init__.py           # Core PhotoGallery class
 ├── web.py               # Flask web server
 ├── launcher.py          # Web server launcher
+├── qr.svg               # QR code shown by the action-button alternate view
 └── SETUP.md             # This file
 ```
 
 If files are missing or misplaced, restore them from the repository.
+
+### Action Button Behavior
+
+When the Photo Gallery module is active, pressing the dedicated action button toggles between:
+
+- **Gallery view** (normal rotating photos)
+- **QR view** (renders `src/modules/photo_gallery/qr.svg`)
 
 ### Step 3: Create the Gallery Directory
 

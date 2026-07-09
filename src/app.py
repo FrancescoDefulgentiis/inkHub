@@ -42,8 +42,7 @@ class InkHubApp:
 
         discover_modules()
         selected_module = module_name or self._config["active_module"]
-        module_cfg = self._config.get("modules", {}).get(selected_module, {})
-        self._module = create_module(selected_module, module_cfg, self._display.size)
+        self._module = create_module(selected_module, self._display.size)
         _log.info("Active module: %s", selected_module)
         self._switch_modules = self._resolve_switch_modules()
         self._module_lock = threading.RLock()
@@ -64,13 +63,30 @@ class InkHubApp:
         return self._switch_modules
 
     def _resolve_switch_modules(self) -> tuple[str, ...]:
+        """Return up to 9 module names to bind to switch buttons 1-9.
+
+        Order of preference:
+
+        1. If root config declares ``switch_modules`` (a list of names), use
+           that ordering — but silently drop names that are not registered.
+        2. Otherwise, put the active module first, then every other
+           discovered module in alphabetical order.
+
+        This means dropping a new module folder into ``src/modules/`` makes
+        it appear on a switch button with zero root-config changes, while
+        power users can still pin their own ordering.
+        """
         active_module = str(self._config.get("active_module", "")).strip()
-        configured_modules = [
-            str(name).strip() for name in self._config.get("modules", {}) if str(name).strip()
-        ]
         discovered_modules = set(available_modules())
         slots: list[str] = []
-        for module_name in [active_module, *configured_modules, *available_modules()]:
+
+        preferred = self._config.get("switch_modules")
+        if isinstance(preferred, list) and preferred:
+            candidate_order = [str(name).strip() for name in preferred]
+        else:
+            candidate_order = [active_module, *available_modules()]
+
+        for module_name in candidate_order:
             if module_name and module_name in discovered_modules and module_name not in slots:
                 slots.append(module_name)
             if len(slots) == 9:
@@ -116,8 +132,7 @@ class InkHubApp:
             if current_module.name == module_name:
                 return False
 
-            module_cfg = self._config.get("modules", {}).get(module_name, {})
-            new_module = create_module(module_name, module_cfg, self._display.size)
+            new_module = create_module(module_name, self._display.size)
             if self._module_started:
                 new_module.start()
 
