@@ -26,17 +26,18 @@ sure the credentials never accidentally end up in git.
 
 ## Point the module elsewhere (optional)
 
-The path is configurable in `config_files/config.json`:
+The path is configurable in this folder's `config.json`:
 
 ```json
-"ytmusic": {
-    "auth_file": "src/modules/ytmusic/browser.json"
+{
+    "auth_file": "browser.json"
 }
 ```
 
-Relative paths are resolved from the InkHub working directory (i.e. the
-repository root, where you run `python -m src`). Absolute paths work too if
-you'd rather keep the file elsewhere on disk.
+Relative paths are resolved from this module's folder
+(`src/modules/ytmusic/`), so the default `"browser.json"` already points at
+the credentials file you dropped in here. Absolute paths work too if you'd
+rather keep the file elsewhere on disk.
 
 ## Security
 

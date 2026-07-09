@@ -89,7 +89,7 @@ mkdir -p photo_gallery
 Edit the main InkHub configuration file:
 
 ```bash
-nano config_files/config.json
+nano src/config.json
 ```
 
 ### Step 2: Configure Photo Gallery Settings
@@ -133,7 +133,7 @@ Locate the `"photo_gallery"` section and verify these settings:
 Save the file and verify no JSON syntax errors:
 
 ```bash
-python -c "import json; json.load(open('config_files/config.json'))"
+python -c "import json; json.load(open('src/config.json'))"
 ```
 
 If no output, the JSON is valid. If you see an error, fix the syntax and try again.
@@ -327,7 +327,7 @@ Each photo shows its current display mode. To change it:
 
 The **Change Rate** determines how often the e-ink display advances to the next photo. To change it:
 
-1. Edit `config_files/config.json`
+1. Edit `src/config.json`
 2. Update the `"change_rate"` value (in seconds)
 3. Restart InkHub
 
@@ -361,7 +361,7 @@ If you don't specify a display mode when uploading, the default from `config.jso
 }
 ```
 
-Edit this in `config_files/config.json` and restart InkHub to change the default for all new uploads.
+Edit this in `src/config.json` and restart InkHub to change the default for all new uploads.
 
 ---
 
@@ -473,7 +473,7 @@ This is by design. To stop it, simply stop the InkHub application.
 **Solutions**:
 1. Verify settings are in `config.json`:
    ```bash
-   cat config_files/config.json | grep -A 10 "photo_gallery"
+   cat src/config.json | grep -A 10 "photo_gallery"
    ```
 2. Check that `modules.photo_gallery` section exists
 3. Manually add if missing (see Configuration section)
@@ -556,7 +556,7 @@ ls -la photo_gallery/
 
 ### View Current Settings
 ```bash
-cat config_files/config.json
+cat src/config.json
 ```
 
 ### Stop InkHub

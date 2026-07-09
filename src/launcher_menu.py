@@ -8,8 +8,6 @@ import sys
 import threading
 from typing import Any, Protocol
 
-from flask import app
-
 from .config import load_config
 from . import diagnostics
 from .registry import available_modules

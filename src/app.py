@@ -22,7 +22,7 @@ class InkHubApp:
 
     def __init__(
         self,
-        config_path: str | Path = "config_files/config.json",
+        config_path: str | Path = "src/config.json",
         module_name: str | None = None,
     ) -> None:
         self._config: dict[str, Any] = load_config(config_path)

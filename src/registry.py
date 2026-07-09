@@ -6,7 +6,7 @@ app never needs to import concrete module classes directly.
 
 Each module folder is expected to ship a ``config.json`` next to its
 ``__init__.py``. That file is the *only* place module-specific settings live
-— the root ``config_files/config.json`` no longer stores per-module blocks.
+— the root ``src/config.json`` no longer stores per-module blocks.
 This makes modules drag-and-drop: copy a folder into ``src/modules/`` and
 its configuration comes along with it.
 """

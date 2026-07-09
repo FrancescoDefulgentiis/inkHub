@@ -43,20 +43,21 @@ Setup (one-time)
    * Move that file into ``src/modules/ytmusic/browser.json`` (a
      ``.gitignore`` next to it prevents accidental commits).
 
-3. Point the module at it in ``config.json`` (the default already matches
-   the location above):
+3. Point the module at it in this folder's ``config.json`` (the default
+   already matches the location above):
 
    .. code-block:: json
 
-       "ytmusic": {
-           "auth_file": "src/modules/ytmusic/browser.json",
+       {
+           "auth_file": "browser.json",
            "poll_interval": 5,
            "default_view": "now_playing",
            "queue_size": 5
        }
 
-   Relative paths are resolved from the working directory in which InkHub
-   is launched (the repository root). Absolute paths are also honoured.
+   Relative paths are resolved from this module's own folder (so
+   ``"browser.json"`` means ``src/modules/ytmusic/browser.json``). Absolute
+   paths are also honoured if you'd rather keep credentials elsewhere.
 
 --------------------------------------------------------------------------
 Fields the YouTube Music API exposes for each track
@@ -110,6 +111,8 @@ _HTTP_TIMEOUT = 15  # seconds
 _DEFAULT_POLL_INTERVAL = 5.0
 _DEFAULT_QUEUE_SIZE = 5
 
+MODULE_DIR = Path(__file__).resolve().parent
+
 
 def _ts() -> str:
     """Consistent local timestamp for module log lines."""
@@ -155,7 +158,7 @@ class YouTubeMusicModule(Module):
 
         # --- Config -----------------------------------------------------
         self._auth_file: str = str(
-            self.config.get("auth_file", "src/modules/ytmusic/browser.json")
+            self.config.get("auth_file", "browser.json")
         )
         self._poll_interval: float = float(
             self.config.get("poll_interval", _DEFAULT_POLL_INTERVAL)
@@ -781,8 +784,8 @@ class YouTubeMusicModule(Module):
 
         auth_path = Path(self._auth_file)
         if not auth_path.is_absolute():
-            # Resolve relative to the repository root (where config.json lives).
-            auth_path = Path.cwd() / auth_path
+            # Resolve relative to this module's folder (adjacent to its config.json).
+            auth_path = MODULE_DIR / auth_path
         if not auth_path.exists():
             self._yt_error = (
                 f"Auth file not found: {auth_path}. "
