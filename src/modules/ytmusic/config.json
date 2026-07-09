@@ -1,6 +1,0 @@
-{
-  "auth_file": "browser.json",
-  "poll_interval": 1,
-  "default_view": "now_playing",
-  "queue_size": 5
-}

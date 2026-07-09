@@ -3,5 +3,5 @@
   "active_module": "dashboard",
   "rotation": 0,
   "log_level": "INFO",
-  "switch_modules": ["dashboard", "weather", "formula1", "ytmusic", "photo_gallery"]
+  "switch_modules": ["dashboard"]
 }
