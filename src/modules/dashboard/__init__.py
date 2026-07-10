@@ -3,10 +3,11 @@
 This module rolls three things onto a single screen:
 
 * **Clock** — large current time (``HH:MM``) with the date below.
-* **Weather** — a compact view of the same Open-Meteo data used by the
-  :mod:`weather <src.modules.weather>` module: town, condition icon,
-  current/feels-like temperature and a small stats strip
-  (humidity, wind, sunrise, sunset).
+* **Weather** — a compact view of Open-Meteo data (town, condition icon,
+  current/feels-like temperature and a small stats strip: humidity, wind,
+  sunrise, sunset). The networking, icon rendering and data containers used
+  here live in the sibling :mod:`_weather <src.modules.dashboard._weather>`
+  helper module.
 * **Quote of the day** — one inspirational quote fetched from
   `ZenQuotes <https://zenquotes.io/>`_. The quote is refreshed **at most once
   per calendar day** and cached to disk, so switching to this module (or
@@ -27,7 +28,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from ...module import Module
 from ...registry import register_module
-from ..weather import (
+from ._weather import (
     Location,
     WeatherData,
     _draw_icon,

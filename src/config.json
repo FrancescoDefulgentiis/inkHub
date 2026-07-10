@@ -1,5 +1,5 @@
 {
-  "panel_driver": "epd7in5",
+  "panel_driver": "YOUR_PANEL_DRIVER",
   "active_module": "dashboard",
   "rotation": 0,
   "log_level": "INFO",

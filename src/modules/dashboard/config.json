@@ -1,8 +1,8 @@
 {
   "time_format": "%H:%M",
   "date_format": "%A, %d %B %Y",
-  "town": "Monterotondo",
-  "country": "Italy",
+  "town": "YOUR_TOWN",
+  "country": "YOUR_COUNTRY",
   "temperature_unit": "celsius",
   "wind_speed_unit": "kmh",
   "quote_url": "https://zenquotes.io/api/today",
