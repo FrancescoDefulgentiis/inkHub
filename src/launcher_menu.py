@@ -104,7 +104,6 @@ def _print_menu(
     print("InkHub terminal launcher")
     print(f"Config   : {config_path.resolve()}")
     print(f"Running  : {active_module_name}")
-    print(f"Default  : {config.get('active_module', '<unset>')}")
     print("-" * 64)
     print("Switch buttons")
     for slot in range(9):
@@ -138,7 +137,6 @@ def _print_config_summary(
     print(f"Path             : {config_path.resolve()}")
     print(f"Panel driver     : {config.get('panel_driver', '<unset>')}")
     print(f"Running module   : {active_module_name}")
-    print(f"Default module   : {config.get('active_module', '<unset>')}")
     print(f"Discovered       : {', '.join(module_names) if module_names else '<none>'}")
     print(f"Log level        : {config.get('log_level', '<unset>')}")
     print("Control mode     : terminal menu only")

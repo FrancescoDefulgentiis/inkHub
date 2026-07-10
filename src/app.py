@@ -41,7 +41,13 @@ class InkHubApp:
         )
 
         discover_modules()
-        selected_module = module_name or self._config["active_module"]
+        discovered = available_modules()
+        if not discovered:
+            raise RuntimeError(
+                "No modules discovered in src/modules/. Drop a module folder "
+                "in there (or install one) before starting InkHub."
+            )
+        selected_module = module_name or discovered[0]
         self._module = create_module(selected_module, self._display.size)
         _log.info("Active module: %s", selected_module)
         self._switch_modules = self._resolve_switch_modules()
@@ -65,29 +71,15 @@ class InkHubApp:
     def _resolve_switch_modules(self) -> tuple[str, ...]:
         """Return up to 9 module names to bind to switch buttons 1-9.
 
-        Order of preference:
-
-        1. If root config declares ``switch_modules`` (a list of names), use
-           that ordering — but silently drop names that are not registered.
-        2. Otherwise, put the active module first, then every other
-           discovered module in alphabetical order.
-
-        This means dropping a new module folder into ``src/modules/`` makes
-        it appear on a switch button with zero root-config changes, while
-        power users can still pin their own ordering.
+        The currently active module is placed on button 1, followed by every
+        other discovered module in alphabetical order. Dropping a new module
+        folder into ``src/modules/`` makes it appear on a switch button with
+        zero configuration.
         """
-        active_module = str(self._config.get("active_module", "")).strip()
-        discovered_modules = set(available_modules())
+        active_module = self._module.name
         slots: list[str] = []
-
-        preferred = self._config.get("switch_modules")
-        if isinstance(preferred, list) and preferred:
-            candidate_order = [str(name).strip() for name in preferred]
-        else:
-            candidate_order = [active_module, *available_modules()]
-
-        for module_name in candidate_order:
-            if module_name and module_name in discovered_modules and module_name not in slots:
+        for module_name in (active_module, *available_modules()):
+            if module_name and module_name not in slots:
                 slots.append(module_name)
             if len(slots) == 9:
                 break
@@ -145,7 +137,6 @@ class InkHubApp:
                     )
 
             self._module = new_module
-            self._config["active_module"] = module_name
 
         _log.info("Switched active module to %s", module_name)
         self._wake.set()

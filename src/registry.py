@@ -34,7 +34,8 @@ MODULE_CONFIG_FILENAME = "config.json"
 def register_module(name: str):
     """Class decorator that adds a :class:`Module` subclass to the registry.
 
-    :param name: Unique short name used in ``config.json`` (``active_module``).
+    :param name: Unique short name used to identify the module (e.g. via
+        ``--module`` at startup or the interactive launcher).
     """
 
     def decorator(cls: type[Module]) -> type[Module]:
