@@ -15,6 +15,7 @@ from .display import Display
 from .registry import available_modules, create_module, discover_modules
 
 _log = logging.getLogger(__name__)
+_boot_log = logging.getLogger("inkhub.boot")
 
 
 class InkHubApp:
@@ -25,7 +26,12 @@ class InkHubApp:
         config_path: str | Path = "src/config.json",
         module_name: str | None = None,
     ) -> None:
+        _boot_log.warning(
+            "[BOOT][app] loading config from %s",
+            config_path,
+        )
         self._config: dict[str, Any] = load_config(config_path)
+        _boot_log.warning("[BOOT][app] config loaded")
 
         verbose_level_name = str(self._config.get("log_level", "INFO")).upper()
         verbose_level = logging.getLevelName(verbose_level_name)
@@ -36,19 +42,28 @@ class InkHubApp:
             quiet_level=logging.WARNING,
         )
 
+        _boot_log.warning(
+            "[BOOT][app] creating display with panel_driver=%s",
+            self._config["panel_driver"],
+        )
         self._display = Display(
             driver_name=self._config["panel_driver"],
         )
+        _boot_log.warning("[BOOT][app] display ready")
 
+        _boot_log.warning("[BOOT][app] discovering modules")
         discover_modules()
         discovered = available_modules()
+        _boot_log.warning("[BOOT][app] discovered modules: %s", discovered)
         if not discovered:
             raise RuntimeError(
                 "No modules discovered in src/modules/. Drop a module folder "
                 "in there (or install one) before starting InkHub."
             )
         selected_module = module_name or discovered[0]
+        _boot_log.warning("[BOOT][app] creating active module=%s", selected_module)
         self._module = create_module(selected_module, self._display.size)
+        _boot_log.warning("[BOOT][app] active module created")
         _log.info("Active module: %s", selected_module)
         self._switch_modules = self._resolve_switch_modules()
         self._module_lock = threading.RLock()

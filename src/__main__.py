@@ -26,10 +26,13 @@ def main(argv: list[str] | None = None) -> int:
     from .launcher_menu import start_interactive_menu
 
     try:
+        logging.getLogger("inkhub.boot").warning("[BOOT][main] starting InkHub")
         app = InkHubApp(args.config)
+        logging.getLogger("inkhub.boot").warning("[BOOT][main] app initialization completed")
         if not args.no_menu and sys.stdin.isatty() and sys.stdout.isatty():
             start_interactive_menu(app, args.config)
 
+        logging.getLogger("inkhub.boot").warning("[BOOT][main] entering run loop")
         app.run()
     except KeyboardInterrupt:
         return 0
